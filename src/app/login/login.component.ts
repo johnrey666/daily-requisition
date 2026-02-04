@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { AuthService } from '../core/services/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -17,7 +18,8 @@ export class LoginComponent {
 
   constructor(
     private fb: FormBuilder,
-    private router: Router
+    private router: Router,
+    private authService: AuthService
   ) {
     this.loginForm = this.fb.nonNullable.group({
       email: ['', [Validators.required, Validators.email]],
@@ -38,6 +40,8 @@ export class LoginComponent {
     this.showPassword = !this.showPassword;
   }
 
+  authError: string | null = null;
+
   onSubmit(): void {
     if (this.loginForm.invalid) {
       this.loginForm.markAllAsTouched();
@@ -45,10 +49,25 @@ export class LoginComponent {
     }
 
     this.isSubmitting = true;
-    // Simulate API call - replace with actual auth logic
-    setTimeout(() => {
-      this.isSubmitting = false;
-      this.router.navigate(['/dashboard']);
-    }, 1500);
+    this.authError = null;
+
+    const { email, password } = this.loginForm.getRawValue();
+
+    console.log('Login submit', { email });
+
+    this.authService.signIn(email, password)
+      .then((res) => {
+        console.log('Sign in success', res);
+        this.isSubmitting = false;
+        this.router.navigate(['/dashboard']).catch((navErr) => {
+          console.error('Navigate to dashboard failed', navErr);
+          this.authError = 'Navigation failed';
+        });
+      })
+      .catch((err: any) => {
+        console.error('Sign in error', err);
+        this.isSubmitting = false;
+        this.authError = err?.message || 'Sign in failed';
+      });
   }
 }

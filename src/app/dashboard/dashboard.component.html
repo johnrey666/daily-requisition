@@ -111,15 +111,65 @@
             </svg>
           }
         </button>
-        <button type="button" class="header-icon-btn" aria-label="Settings">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
-          </svg>
-        </button>
-        <div class="header-user">
-          <div class="user-avatar">SB</div>
-          <span class="user-name">Stebin Ben</span>
+        <div class="header-user" *ngIf="user$ | async as user">
+          <div class="user-avatar">{{ (user.email || 'U').charAt(0).toUpperCase() }}</div>
+          <div class="user-info">
+            <span class="user-name">{{ user.email }}</span>
+          </div>
+
+          <div class="settings" *ngIf="isAdmin">
+            <button type="button" class="header-icon-btn" (click)="toggleSettings()" aria-label="Settings">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+              </svg>
+            </button>
+
+            <div class="settings-dropdown" *ngIf="showSettings">
+              <button class="dropdown-item" (click)="openCreateUserModal()">Create user</button>
+              <button class="dropdown-item">Sign out</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Create User Modal -->
+        <div class="modal-overlay" *ngIf="showCreateUserModal">
+          <div class="modal">
+            <h3>Create user</h3>
+
+            <form [formGroup]="createUserForm" (ngSubmit)="createUser()">
+              <label>Email</label>
+              <input type="email" formControlName="email" />
+              <div class="field-error" *ngIf="createUserForm.get('email')?.invalid && createUserForm.get('email')?.touched">
+                <small *ngIf="createUserForm.get('email')?.errors?.['required']">Email is required</small>
+                <small *ngIf="createUserForm.get('email')?.errors?.['email']">Invalid email</small>
+              </div>
+
+              <label>Password</label>
+              <input type="password" formControlName="password" />
+              <div class="field-error" *ngIf="createUserForm.get('password')?.invalid && createUserForm.get('password')?.touched">
+                <small *ngIf="createUserForm.get('password')?.errors?.['required']">Password is required</small>
+                <small *ngIf="createUserForm.get('password')?.errors?.['minlength']">Password must be at least 6 characters</small>
+              </div>
+
+              <label>Role</label>
+              <select formControlName="role">
+                <option value="user">User</option>
+                <option value="procurement">Procurement</option>
+                <option value="admin">Admin</option>
+              </select>
+
+              <div class="modal-actions">
+                <button type="button" class="btn" (click)="closeCreateUserModal()">Cancel</button>
+                <button type="submit" class="btn primary" [disabled]="isCreating">{{ isCreating ? 'Creating...' : 'Create' }}</button>
+              </div>
+
+              <div class="create-result">
+                <div class="success" *ngIf="createSuccess">{{ createSuccess }}</div>
+                <div class="error" *ngIf="createError">{{ createError }}</div>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </header>

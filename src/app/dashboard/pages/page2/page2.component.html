@@ -1,108 +1,364 @@
 <div class="page-content">
   <header class="page-header">
-    <h1 class="page-title">Daily Production</h1>
-    <p class="page-description">Track and monitor daily production metrics and output.</p>
+    <h1 class="page-title">Daily Production Requisitions</h1>
+    <p class="page-description">Manage and track production requisitions, SKUs, and raw materials.</p>
   </header>
 
   <!-- Stats grid -->
   <div class="stats-grid">
     <div class="stat-card">
       <div class="stat-header">
-        <span class="stat-label">Today's Output</span>
-        <span class="stat-trend stat-trend-up">+12.5%</span>
+        <span class="stat-label">Active Table</span>
+        <span class="stat-trend stat-trend-up" *ngIf="currentTable">Active</span>
+        <span class="stat-trend stat-trend-down" *ngIf="!currentTable">Inactive</span>
       </div>
-      <p class="stat-value">2,847</p>
-      <p class="stat-subtitle">Units produced today</p>
+      <p class="stat-value">{{ currentTable?.name || 'None' }}</p>
+      <p class="stat-subtitle">Selected production table</p>
     </div>
     <div class="stat-card">
       <div class="stat-header">
-        <span class="stat-label">Weekly Average</span>
-        <span class="stat-trend stat-trend-up">+8.2%</span>
+        <span class="stat-label">Items Count</span>
+        <span class="stat-trend stat-trend-up">+{{ requisitionItems.length }}</span>
       </div>
-      <p class="stat-value">19,234</p>
-      <p class="stat-subtitle">Average units per week</p>
+      <p class="stat-value">{{ filteredItems.length }}</p>
+      <p class="stat-subtitle">Requisition items</p>
     </div>
     <div class="stat-card">
       <div class="stat-header">
-        <span class="stat-label">Efficiency Rate</span>
-        <span class="stat-trend stat-trend-up">+5.1%</span>
+        <span class="stat-label">Master Data</span>
+        <span class="stat-trend stat-trend-up" *ngIf="masterData.length > 0">Loaded</span>
+        <span class="stat-trend stat-trend-down" *ngIf="masterData.length === 0">Empty</span>
       </div>
-      <p class="stat-value">94.2%</p>
-      <p class="stat-subtitle">Production efficiency</p>
+      <p class="stat-value">{{ masterData.length }}</p>
+      <p class="stat-subtitle">SKU records available</p>
     </div>
     <div class="stat-card">
       <div class="stat-header">
-        <span class="stat-label">Active Lines</span>
-        <span class="stat-trend stat-trend-down">-2</span>
+        <span class="stat-label">Tables</span>
+        <span class="stat-trend stat-trend-up">+{{ userTables.length }}</span>
       </div>
-      <p class="stat-value">8</p>
-      <p class="stat-subtitle">Production lines running</p>
+      <p class="stat-value">{{ userTables.length }}</p>
+      <p class="stat-subtitle">Production tables</p>
     </div>
   </div>
 
-  <!-- Production table -->
+  <!-- Control Bar -->
+  <div class="card control-card">
+    <div class="card-header">
+      <h3 class="card-title">Controls</h3>
+      <div class="card-actions">
+        <button class="btn btn-icon" (click)="exportData('all')" [disabled]="requisitionItems.length === 0">
+          <i class="fas fa-download"></i> Export All
+        </button>
+        <button class="btn btn-primary" (click)="printTable()" [disabled]="requisitionItems.length === 0">
+          <i class="fas fa-print"></i> Print
+        </button>
+      </div>
+    </div>
+    <div class="control-grid">
+      <!-- Table Management -->
+      <div class="control-group">
+        <label class="control-label">Table Management</label>
+        <div class="control-row">
+          <select class="select" [(ngModel)]="selectedTableId" (change)="loadTableData()">
+            <option value="">-- Select Table --</option>
+            <option *ngFor="let table of userTables" [value]="table.id">{{ table.name }}</option>
+          </select>
+          <button class="btn btn-icon" (click)="createNewTable()" title="New Table">
+            <i class="fas fa-plus"></i>
+          </button>
+          <button class="btn btn-icon" [disabled]="!selectedTableId" (click)="renameTable()" title="Rename">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="btn btn-danger" [disabled]="!selectedTableId" (click)="deleteTable()" title="Delete">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- File Upload -->
+      <div class="control-group">
+        <label class="control-label">Master Data</label>
+        <div class="control-row">
+          <button class="btn btn-icon" (click)="masterFileInput.click()">
+            <i class="fas fa-upload"></i> Upload Excel
+          </button>
+          <input type="file" #masterFileInput id="masterFile" accept=".xlsx, .xls"
+                 (change)="onFileUpload($event)" style="display: none">
+          <span class="file-status" [class.has-file]="uploadedFileName" [title]="uploadedFileName || 'No file uploaded'">
+            {{ uploadedFileName || 'No file' }}
+          </span>
+          <button *ngIf="uploadedFileName" class="btn btn-icon btn-danger" (click)="clearFile()" title="Clear">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="control-group">
+        <label class="control-label">Quick Actions</label>
+        <div class="control-row">
+          <div class="dropdown">
+            <button class="btn btn-icon" [disabled]="requisitionItems.length === 0" (click)="toggleExportDropdown()">
+              <i class="fas fa-file-export"></i> Export
+            </button>
+            <div *ngIf="isExportDropdownOpen" class="dropdown-menu">
+              <button (click)="exportData('all')"><i class="fas fa-file-excel"></i> All Data</button>
+              <button (click)="exportData('pre-mix')"><i class="fas fa-flask"></i> Pre-mix</button>
+              <button (click)="exportData('packaging')"><i class="fas fa-box"></i> Packaging</button>
+              <button (click)="exportData('meat-veg')"><i class="fas fa-carrot"></i> Meat & Veg</button>
+            </div>
+          </div>
+          <button class="btn btn-danger" (click)="clearAll()" [disabled]="!selectedTableId">
+            <i class="fas fa-trash"></i> Clear Table
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Add Form -->
+  <div class="card quickadd-card">
+    <div class="card-header">
+      <h3 class="card-title">Add Requisition</h3>
+      <div class="card-actions">
+        <span class="badge badge-info">{{ categories.length }} Categories</span>
+        <span class="badge badge-info">{{ skus.length }} SKUs</span>
+      </div>
+    </div>
+    <div class="quickadd-form" [formGroup]="requisitionForm">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Category</label>
+          <select class="select" formControlName="category" (change)="onCategoryChange()">
+            <option value="">Select Category</option>
+            <option *ngFor="let category of categories" [value]="category">
+              {{ category }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>SKU</label>
+          <select class="select" formControlName="sku" (change)="onSkuChange()" [disabled]="skus.length === 0">
+            <option value="">Select SKU</option>
+            <option *ngFor="let sku of skus" [value]="sku.name" [title]="sku.name">
+              {{ sku.name }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>SKU Code</label>
+          <input class="input" type="text" formControlName="skuCode" placeholder="Auto-filled" readonly>
+        </div>
+
+        <div class="form-group">
+          <label>Quantity Needed</label>
+          <input class="input" type="number" formControlName="qtyNeeded" min="1" max="99">
+        </div>
+
+        <div class="form-group">
+          <label>Supplier</label>
+          <input class="input" type="text" formControlName="supplier" placeholder="Enter supplier">
+        </div>
+
+        <div class="form-group">
+          <label>&nbsp;</label>
+          <button class="btn btn-primary btn-add" (click)="addRequisition()" 
+                  [disabled]="requisitionForm.invalid || !selectedTableId">
+            <i class="fas fa-plus"></i> Add Item
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Requisitions Table -->
   <div class="card table-card">
     <div class="card-header">
-      <h3 class="card-title">Production Log</h3>
+      <h3 class="card-title">
+        <i class="fas fa-list"></i> Requisition Items
+        <span class="badge badge-primary">{{ filteredItems.length }}</span>
+      </h3>
       <div class="card-actions">
-        <select class="select">
-          <option>All Lines</option>
-          <option>Line 1</option>
-          <option>Line 2</option>
-          <option>Line 3</option>
-        </select>
-        <button class="btn btn-primary">Export Report</button>
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="onSearch()" placeholder="Search items...">
+          <button *ngIf="searchQuery" class="btn btn-icon btn-clear" (click)="searchQuery = ''; onSearch()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="pagination-mini" *ngIf="requisitionItems.length > itemsPerPage">
+          <button class="btn btn-icon" (click)="changePage(-1)" [disabled]="currentPage === 1">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <span>Page {{ currentPage }}/{{ totalPages }}</span>
+          <button class="btn btn-icon" (click)="changePage(1)" [disabled]="currentPage === totalPages">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
       </div>
     </div>
     <div class="table-wrapper">
       <table class="table">
         <thead>
           <tr>
-            <th>Time</th>
-            <th>Line</th>
-            <th>Product</th>
+            <th style="width: 40px;"></th>
+            <th (click)="sortBy('skuCode')" class="sortable">
+              Code <i class="fas" [class.fa-sort-up]="sortField === 'skuCode' && sortAsc" 
+                     [class.fa-sort-down]="sortField === 'skuCode' && !sortAsc"></i>
+            </th>
+            <th (click)="sortBy('skuName')" class="sortable">
+              SKU <i class="fas" [class.fa-sort-up]="sortField === 'skuName' && sortAsc" 
+                    [class.fa-sort-down]="sortField === 'skuName' && !sortAsc"></i>
+            </th>
+            <th (click)="sortBy('category')" class="sortable">
+              Category <i class="fas" [class.fa-sort-up]="sortField === 'category' && sortAsc" 
+                         [class.fa-sort-down]="sortField === 'category' && !sortAsc"></i>
+            </th>
             <th>Quantity</th>
-            <th>Status</th>
+            <th>Supplier</th>
+            <th>Qty/Unit</th>
+            <th>Unit</th>
+            <th>Qty/Pack</th>
+            <th>Pack Unit</th>
+            <th>Materials</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>08:00 AM</td>
-            <td>Line 1</td>
-            <td>Product A</td>
-            <td>450</td>
-            <td><span class="badge badge-success">Completed</span></td>
+          <tr *ngIf="filteredItems.length === 0" class="empty-row">
+            <td colspan="12">
+              <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <p>{{ searchQuery ? 'No matching items found' : 'No requisitions added yet' }}</p>
+                <p *ngIf="!selectedTableId" class="empty-hint">Select or create a table to start</p>
+              </div>
+            </td>
           </tr>
-          <tr>
-            <td>09:15 AM</td>
-            <td>Line 2</td>
-            <td>Product B</td>
-            <td>320</td>
-            <td><span class="badge badge-success">Completed</span></td>
-          </tr>
-          <tr>
-            <td>10:30 AM</td>
-            <td>Line 3</td>
-            <td>Product C</td>
-            <td>280</td>
-            <td><span class="badge badge-pending">In Progress</span></td>
-          </tr>
-          <tr>
-            <td>11:45 AM</td>
-            <td>Line 1</td>
-            <td>Product A</td>
-            <td>380</td>
-            <td><span class="badge badge-processing">Processing</span></td>
-          </tr>
-          <tr>
-            <td>01:00 PM</td>
-            <td>Line 4</td>
-            <td>Product D</td>
-            <td>520</td>
-            <td><span class="badge badge-success">Completed</span></td>
-          </tr>
+
+          <ng-container *ngFor="let item of filteredItems">
+            <tr [class.expanded]="expandedRows.has(item.id)">
+              <td>
+                <button class="btn btn-icon btn-sm" (click)="toggleRow(item.id)">
+                  <i class="fas" [class.fa-chevron-up]="expandedRows.has(item.id)" 
+                     [class.fa-chevron-down]="!expandedRows.has(item.id)"></i>
+                </button>
+              </td>
+              <td><strong>{{ item.skuCode }}</strong></td>
+              <td class="truncate-cell">{{ item.skuName }}</td>
+              <td><span class="badge badge-category">{{ item.category || 'Uncategorized' }}</span></td>
+              <td>
+                <input class="input input-sm" type="number" min="1" max="99"
+                       [value]="item.qtyNeeded"
+                       (change)="updateQty(item.id, $any($event.target).value)">
+              </td>
+              <td>
+                <input class="input input-sm" type="text"
+                       [value]="item.supplier || ''"
+                       (change)="updateSupplier(item.id, $any($event.target).value)"
+                       placeholder="Supplier">
+              </td>
+              <td>{{ item.qtyPerUnit || '-' }}</td>
+              <td><span class="badge badge-unit">{{ item.unit || '-' }}</span></td>
+              <td>{{ item.qtyPerPack || '-' }}</td>
+              <td><span class="badge badge-unit">{{ item.unit2 || '-' }}</span></td>
+              <td>
+                <span class="badge badge-materials">{{ item.materials ? item.materials.length : 0 }}</span>
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <button class="btn btn-icon btn-sm btn-danger" (click)="deleteItem(item.id)">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Expanded Materials Row -->
+            <tr *ngIf="expandedRows.has(item.id)" class="details-row">
+              <td colspan="12">
+                <div class="details-panel">
+                  <div class="details-header">
+                    <h5><i class="fas fa-boxes"></i> Raw Materials ({{ item.materials ? item.materials.length : 0 }})</h5>
+                    <select class="select select-sm" #typeFilter (change)="filterMaterials(item.id, typeFilter.value)">
+                      <option value="">All Types</option>
+                      <option value="pre-mix">Pre-mix</option>
+                      <option value="packaging">Packaging</option>
+                      <option value="meat-veg">Meat & Veg</option>
+                    </select>
+                  </div>
+                  <div class="materials-table">
+                    <table class="table table-sm">
+                      <thead>
+                        <tr>
+                          <th>Raw Material</th>
+                          <th>Qty/Batch</th>
+                          <th>Unit</th>
+                          <th>Type</th>
+                          <th>Total Required</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngIf="getFilteredMaterials(item.id, item.materials).length === 0">
+                          <td colspan="5" class="text-center">
+                            <i class="fas fa-box-open"></i> No materials found
+                          </td>
+                        </tr>
+                        <tr *ngFor="let material of getFilteredMaterials(item.id, item.materials)">
+                          <td><strong>{{ material.name }}</strong></td>
+                          <td>{{ material.qty }}</td>
+                          <td><span class="badge badge-unit">{{ material.unit || '-' }}</span></td>
+                          <td>
+                            <span class="badge" 
+                                  [class.badge-pre-mix]="material.type?.includes('pre-mix')"
+                                  [class.badge-packaging]="material.type?.includes('packaging')"
+                                  [class.badge-meat]="material.type?.includes('meat') || material.type?.includes('chicken') || material.type?.includes('pork') || material.type?.includes('beef') || material.type?.includes('fish')"
+                                  [class.badge-veg]="material.type?.includes('veg')">
+                              {{ material.type || 'N/A' }}
+                            </span>
+                          </td>
+                          <td><strong>{{ material.requiredQty }} {{ material.unit || '' }}</strong></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
         </tbody>
       </table>
     </div>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <div class="status-info">
+      <span><i class="fas fa-table"></i> {{ currentTable?.name || 'No table selected' }}</span>
+      <span class="divider">|</span>
+      <span><i class="fas fa-cube"></i> {{ filteredItems.length }} items</span>
+      <span class="divider">|</span>
+      <span><i class="fas fa-database"></i> Auto-saved to Firebase</span>
+      <span class="divider">|</span>
+      <span><i class="fas fa-user"></i> {{ (currentUser$ | async)?.email || 'Guest' }}</span>
+    </div>
+    <div class="status-actions">
+      <span *ngIf="requisitionItems.length > itemsPerPage" class="pagination-info">
+        Showing {{ (currentPage - 1) * itemsPerPage + 1 }}-{{ getCurrentPageEnd() }} of {{ requisitionItems.length }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Snackbar Notification -->
+  <div *ngIf="showSnackbar" class="snackbar" [ngClass]="'snackbar-' + snackbarType">
+    <div class="snackbar-content">
+      <i class="fas" [ngClass]="getSnackbarIcon()"></i>
+      <span>{{ snackbarMessage }}</span>
+    </div>
+    <button class="btn btn-icon btn-sm" (click)="hideSnackbar()">
+      <i class="fas fa-times"></i>
+    </button>
   </div>
 </div>
