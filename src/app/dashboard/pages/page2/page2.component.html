@@ -13,7 +13,7 @@
       <div class="form-grid">
         <div class="form-group">
           <label for="category">Category</label>
-          <select id="category" class="select" [(ngModel)]="newItem.category" (change)="onCategoryChange()">
+          <select id="category" class="select compact-select" [(ngModel)]="newItem.category" (change)="onCategoryChange()">
             <option value="" disabled selected>Select Category</option>
             <option *ngFor="let cat of categories" [value]="cat">{{cat}}</option>
           </select>
@@ -21,7 +21,7 @@
         
         <div class="form-group">
           <label for="sku">SKU</label>
-          <select id="sku" class="select" [(ngModel)]="newItem.sku" (change)="onSkuChange()" [disabled]="!newItem.category">
+          <select id="sku" class="select compact-select" [(ngModel)]="newItem.sku" (change)="onSkuChange()" [disabled]="!newItem.category">
             <option value="" disabled selected>Select SKU</option>
             <option *ngFor="let sku of filteredSkus" [value]="sku">{{sku}}</option>
           </select>
@@ -29,18 +29,18 @@
         
         <div class="form-group">
           <label for="code">Code</label>
-          <input type="text" id="code" class="input" [value]="newItem.code" placeholder="Auto-generated" readonly>
+          <input type="text" id="code" class="input compact-input" [value]="newItem.code" placeholder="Auto-generated" readonly>
         </div>
         
         <div class="form-group">
           <label for="supplier">Supplier</label>
-          <input type="text" id="supplier" class="input" [(ngModel)]="newItem.supplier" placeholder="Enter supplier name">
+          <input type="text" id="supplier" class="input compact-input" [(ngModel)]="newItem.supplier" placeholder="Enter supplier name">
         </div>
         
         <div class="form-group">
           <label>&nbsp;</label>
-          <button class="btn btn-primary" (click)="addItem()" [disabled]="!canAddItem()">
-            <span class="btn-icon">+</span> Add Item
+          <button class="btn btn-primary compact-btn" (click)="addItem()" [disabled]="!canAddItem()">
+            <span class="btn-icon">+</span> Add
           </button>
         </div>
       </div>
@@ -51,23 +51,23 @@
   <div class="search-section">
     <div class="search-container">
       <div class="search-input-group">
-        <svg class="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none">
           <path d="M7.33333 12.6667C10.2789 12.6667 12.6667 10.2789 12.6667 7.33333C12.6667 4.38781 10.2789 2 7.33333 2C4.38781 2 2 4.38781 2 7.33333C2 10.2789 4.38781 12.6667 7.33333 12.6667Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           <path d="M14 14L11.1 11.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <input 
           type="text" 
-          class="search-input" 
+          class="search-input compact-search" 
           placeholder="Search items, SKU, supplier..." 
           [(ngModel)]="searchQuery"
           (input)="onSearch()">
       </div>
       <div class="search-actions">
-        <select class="select" [(ngModel)]="filterCategory" (change)="onFilterChange()">
+        <select class="select compact-select" [(ngModel)]="filterCategory" (change)="onFilterChange()">
           <option value="">All Categories</option>
           <option *ngFor="let cat of categories" [value]="cat">{{cat}}</option>
         </select>
-        <button class="btn btn-secondary" (click)="clearFilters()">Clear Filters</button>
+        <button class="btn btn-secondary compact-btn" (click)="clearFilters()">Clear</button>
       </div>
     </div>
   </div>
@@ -77,62 +77,93 @@
     <div class="card-header">
       <h3 class="card-title">Inventory Items</h3>
       <div class="card-stats">
-        <span class="stat-item">{{filteredItems.length}} items</span>
-        <span class="stat-item">{{totalQuantity | number}} total quantity</span>
+        <div class="stat-badge">
+          <span class="stat-label">Items</span>
+          <span class="stat-value">{{filteredItems.length}}</span>
+        </div>
+        <div class="stat-badge">
+          <span class="stat-label">Total Qty</span>
+          <span class="stat-value">{{totalQuantity | number}}</span>
+        </div>
       </div>
     </div>
     <div class="table-wrapper">
-      <table class="table">
+      <table class="table compact-table">
         <thead>
           <tr>
-            <th></th>
-            <th>Code</th>
-            <th>SKU</th>
-            <th>Category</th>
-            <th>Qty</th>
-            <th>Supplier</th>
-            <th>Qty/Unit</th>
-            <th>Unit</th>
-            <th>Qty/Pack</th>
-            <th>Pack Unit</th>
-            <th>Mats</th>
-            <th>Actions</th>
+            <th class="col-expand"></th>
+            <th class="col-code">Code</th>
+            <th class="col-sku">SKU</th>
+            <th class="col-category">Category</th>
+            <th class="col-qty">Qty</th>
+            <th class="col-supplier">Supplier</th>
+            <th class="col-unit">Qty/Unit</th>
+            <th class="col-unit">Unit</th>
+            <th class="col-unit">Qty/Pack</th>
+            <th class="col-unit">Pack Unit</th>
+            <th class="col-mats">Mats</th>
+            <th class="col-actions">Actions</th>
           </tr>
         </thead>
         <tbody>
           <ng-container *ngFor="let item of filteredItems; let i = index">
             <!-- Main Row -->
-            <tr class="main-row" (click)="toggleRow(item.id)">
-              <td>
+            <tr class="main-row" [class.row-expanded]="expandedRows[item.id]" (click)="toggleRow(item.id)">
+              <td class="col-expand">
                 <span class="expand-icon" [class.expanded]="expandedRows[item.id]">
-                  ▼
+                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+                    <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
                 </span>
               </td>
-              <td>{{item.code}}</td>
-              <td>{{item.sku}}</td>
-              <td>
-                <span class="category-badge" [style.backgroundColor]="getCategoryColor(item.category)">
+              <td class="col-code">
+                <span class="code-badge">{{item.code}}</span>
+              </td>
+              <td class="col-sku">
+                <div class="sku-info">
+                  <span class="sku-value">{{item.sku}}</span>
+                </div>
+              </td>
+              <td class="col-category">
+                <span class="category-tag" [style]="{'--category-color': getCategoryColor(item.category)}">
                   {{item.category}}
                 </span>
               </td>
-              <td>{{item.qty | number}}</td>
-              <td>{{item.supplier}}</td>
-              <td>{{item.qtyPerUnit}}</td>
-              <td>{{item.unit}}</td>
-              <td>{{item.qtyPerPack}}</td>
-              <td>{{item.packUnit}}</td>
-              <td>
-                <span class="materials-count" [class.has-materials]="item.materials && item.materials.length > 0">
-                  {{item.materials ? item.materials.length : 0}} {{item.materials && item.materials.length === 1 ? 'Material' : 'Materials'}}
-                </span>
+              <td class="col-qty">
+                <div class="quantity-cell">
+                  <span class="quantity-value">{{item.qty | number}}</span>
+                  <div class="quantity-bar" [style.width.%]="getQuantityPercentage(item.qty)"></div>
+                </div>
               </td>
-              <td>
-                <button class="btn-action btn-delete" (click)="deleteItem(item.id, $event)">
+              <td class="col-supplier">
+                <span class="supplier-text" [title]="item.supplier">{{item.supplier}}</span>
+              </td>
+              <td class="col-unit">
+                <span class="unit-value">{{item.qtyPerUnit}}</span>
+              </td>
+              <td class="col-unit">
+                <span class="unit-label">{{item.unit}}</span>
+              </td>
+              <td class="col-unit">
+                <span class="unit-value">{{item.qtyPerPack}}</span>
+              </td>
+              <td class="col-unit">
+                <span class="unit-label">{{item.packUnit}}</span>
+              </td>
+              <td class="col-mats">
+                <div class="materials-indicator">
+                  <span class="materials-count" [class.has-materials]="item.materials && item.materials.length > 0">
+                    {{item.materials ? item.materials.length : 0}}
+                  </span>
+                  <span class="materials-label">mats</span>
+                </div>
+              </td>
+              <td class="col-actions">
+                <button class="btn-action btn-delete-icon" (click)="deleteItem(item.id, $event)" title="Delete item">
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                     <path d="M2 3.5H12M4.5 3.5V2.5C4.5 2.10218 4.65804 1.72064 4.93934 1.43934C5.22064 1.15804 5.60218 1 6 1H8C8.39782 1 8.77936 1.15804 9.06066 1.43934C9.34196 1.72064 9.5 2.10218 9.5 2.5V3.5M11 3.5V11.5C11 11.8978 10.842 12.2794 10.5607 12.5607C10.2794 12.842 9.89782 13 9.5 13H4.5C4.10218 13 3.72064 12.842 3.43934 12.5607C3.15804 12.2794 3 11.8978 3 11.5V3.5H11Z" 
                           stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
-                  Delete
                 </button>
               </td>
             </tr>
@@ -141,37 +172,61 @@
             <tr class="detail-row" *ngIf="expandedRows[item.id]">
               <td colspan="12">
                 <div class="detail-content">
-                  <h4>Material Requirements</h4>
-                  <div class="materials-header" *ngIf="item.materials && item.materials.length > 0">
-                    <span>{{item.materials.length}} materials required</span>
-                    <span>Total Required: {{calculateTotalRequired(item.materials)}}</span>
+                  <div class="materials-container" *ngIf="item.materials && item.materials.length > 0">
+                    <div class="materials-table-wrapper">
+                      <table class="materials-table">
+                        <thead>
+                          <tr>
+                            <th class="mat-col-material">Material</th>
+                            <th class="mat-col-qty">Qty/Batch</th>
+                            <th class="mat-col-unit">Unit</th>
+                            <th class="mat-col-type">Type</th>
+                            <th class="mat-col-total">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr *ngFor="let material of item.materials; let matIndex = index">
+                            <td class="mat-col-material">
+                              <div class="material-info">
+                                <span class="material-name">{{material.name}}</span>
+                                <span class="material-id">MAT-{{(matIndex + 1).toString().padStart(3, '0')}}</span>
+                              </div>
+                            </td>
+                            <td class="mat-col-qty">
+                              <span class="qty-value">{{material.qtyPerBatch}}</span>
+                            </td>
+                            <td class="mat-col-unit">
+                              <span class="unit-badge">{{material.unit}}</span>
+                            </td>
+                            <td class="mat-col-type">
+                              <span class="material-type-badge" [class]="'type-' + material.type.toLowerCase()">
+                                {{material.type}}
+                              </span>
+                            </td>
+                            <td class="mat-col-total">
+                              <span class="total-value">{{material.totalRequired}}</span>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    <div class="materials-summary">
+                      <div class="summary-item">
+                        <span class="summary-label">Total Required:</span>
+                        <span class="summary-value">{{calculateTotalRequired(item.materials || [])}}</span>
+                      </div>
+                    </div>
                   </div>
-                  <table class="materials-table" *ngIf="item.materials && item.materials.length > 0">
-                    <thead>
-                      <tr>
-                        <th>Raw Material</th>
-                        <th>Qty/Batch</th>
-                        <th>Unit</th>
-                        <th>Type</th>
-                        <th>Total Required</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr *ngFor="let material of item.materials">
-                        <td>{{material.name}}</td>
-                        <td>{{material.qtyPerBatch}}</td>
-                        <td>{{material.unit}}</td>
-                        <td>
-                          <span class="material-type" [class]="'type-' + material.type.toLowerCase()">
-                            {{material.type}}
-                          </span>
-                        </td>
-                        <td>{{material.totalRequired}}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                  <div class="no-materials" *ngIf="!item.materials || item.materials.length === 0">
-                    No material requirements defined for this item.
+
+                  <div class="no-materials-container" *ngIf="!item.materials || item.materials.length === 0">
+                    <div class="no-materials-content">
+                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M10 10V14M10 6H10.01M19 10C19 14.9706 14.9706 19 10 19C5.02944 19 1 14.9706 1 10C1 5.02944 5.02944 1 10 1C14.9706 1 19 5.02944 19 10Z" 
+                              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                      <span>No material requirements defined</span>
+                    </div>
                   </div>
                 </div>
               </td>

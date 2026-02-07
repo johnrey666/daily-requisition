@@ -320,21 +320,59 @@ export class Page2Component {
     return `${total.toLocaleString()}`;
   }
 
-  // Get category badge color
-  getCategoryColor(category: string): string {
-    const colors: { [key: string]: string } = {
-      'Electronics': 'hsl(217.2 91.2% 59.8% / 0.2)',
-      'Textiles': 'hsl(142 76% 36% / 0.2)',
-      'Packaging': 'hsl(38 92% 50% / 0.2)',
-      'Chemicals': 'hsl(0 84% 60% / 0.2)',
-      'Food': 'hsl(299 84% 60% / 0.2)',
-      'Automotive': 'hsl(262 83% 60% / 0.2)'
-    };
-    return colors[category] || 'hsl(var(--muted) / 0.2)';
-  }
-
   // Get total quantity for stats
   get totalQuantity(): number {
     return this.filteredItems.reduce((sum, item) => sum + item.qty, 0);
   }
+  // Add this method to calculate quantity percentage for visual bar
+getQuantityPercentage(quantity: number): number {
+  const maxQty = Math.max(...this.items.map(item => item.qty), 5000);
+  return Math.min((quantity / maxQty) * 100, 100);
+}
+
+// Update getCategoryColor to return CSS variable-friendly value
+getCategoryColor(category: string): string {
+  const colors: { [key: string]: string } = {
+    'Electronics': '217, 91.2%, 59.8%',
+    'Textiles': '142, 76%, 36%',
+    'Packaging': '38, 92%, 50%',
+    'Chemicals': '0, 84%, 60%',
+    'Food': '299, 84%, 60%',
+    'Automotive': '262, 83%, 60%'
+  };
+  return `hsla(${colors[category] || 'var(--muted)'}, 0.2)`;
+}
+// Add this method for material progress bar
+getMaterialProgress(totalRequired: string): number {
+  // Extract numeric value from string like "6,500 m"
+  const numericValue = parseFloat(totalRequired.replace(/[^\d.]/g, ''));
+  if (isNaN(numericValue)) return 0;
+  
+  // Calculate percentage (max assumed as 10000 for demo)
+  const maxValue = 10000;
+  return Math.min((numericValue / maxValue) * 100, 100);
+}
+
+// Add this method for average calculation
+calculateAverageRequired(materials: Material[]): string {
+  if (!materials || materials.length === 0) return '0';
+  
+  const total = materials.reduce((sum, material) => {
+    const value = parseFloat(material.totalRequired.replace(/[^\d.]/g, ''));
+    return sum + (isNaN(value) ? 0 : value);
+  }, 0);
+  
+  const average = total / materials.length;
+  
+  // Format based on the unit from first material
+  if (materials[0]?.totalRequired.includes('m')) {
+    return `${average.toFixed(0)} m`;
+  } else if (materials[0]?.totalRequired.includes('kg')) {
+    return `${average.toFixed(0)} kg`;
+  } else if (materials[0]?.totalRequired.includes('L')) {
+    return `${average.toFixed(1)} L`;
+  }
+  
+  return `${average.toFixed(0)}`;
+}
 }
