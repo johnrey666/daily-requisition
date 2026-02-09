@@ -4,6 +4,16 @@ import { Component } from '@angular/core';
   selector: 'app-page3',
   standalone: true,
   templateUrl: './page3.component.html',
-  styleUrl: './page3.component.css',
+  styleUrls: ['./page3.component.css']
 })
-export class Page3Component {}
+export class Page3Component {
+  showModal = false;
+
+  openModal() {
+    this.showModal = true;
+  }
+
+  closeModal() {
+    this.showModal = false;
+  }
+}

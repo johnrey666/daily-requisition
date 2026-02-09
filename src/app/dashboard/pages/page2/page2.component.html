@@ -1,114 +1,87 @@
 <div class="page-content">
   <!-- Snackbar -->
-  <div class="snackbar" [class.show]="showSnackbar" [class.success]="snackbarType === 'success'" 
-       [class.error]="snackbarType === 'error'" [class.info]="snackbarType === 'info'">
+  <div class="snackbar" [class.show]="showSnackbar" [class]="snackbarType">
     <div class="snackbar-content">
-      <svg class="snackbar-icon" [class]="snackbarType" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-        <!-- Success Icon -->
-        <path *ngIf="snackbarType === 'success'" d="M16 6l-8 8-4-4" stroke-linecap="round" stroke-linejoin="round"/>
-        <!-- Error Icon -->
-        <path *ngIf="snackbarType === 'error'" d="M10 10V5M10 10v5" stroke-linecap="round"/>
-        <circle *ngIf="snackbarType === 'error'" cx="10" cy="14" r="1"/>
-        <!-- Info Icon -->
-        <path *ngIf="snackbarType === 'info'" d="M10 13V7M10 17v-1" stroke-linecap="round"/>
-      </svg>
-      <span class="snackbar-message">{{ snackbarMessage }}</span>
+      <span class="icon">
+        <svg *ngIf="snackbarType === 'success'" viewBox="0 0 20 20" fill="none">
+          <path d="M16 6l-8 8-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <svg *ngIf="snackbarType === 'error'" viewBox="0 0 20 20" fill="none">
+          <path d="M10 6v6M10 14v0.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <svg *ngIf="snackbarType === 'info'" viewBox="0 0 20 20" fill="none">
+          <circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="2"/>
+          <path d="M10 7v1M10 12v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <span class="message">{{ snackbarMessage }}</span>
     </div>
-    <button class="snackbar-close" (click)="hideSnackbar()">
-      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-        <path d="M9 3L3 9M3 3l6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+    <button class="close" (click)="hideSnackbar()">
+      <svg viewBox="0 0 16 16" fill="none">
+        <path d="M12 4l-8 8M4 4l8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
     </button>
   </div>
 
   <!-- Header -->
   <div class="page-header">
-    <div class="header-content">
-      <div class="header-title-group">
-        <h1 class="page-title">
-          <svg class="page-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M20 7h-3m2 3V4M9 4H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-2M15 4h2a3 3 0 0 1 3 3v2m-6 0h6"/>
-          </svg>
-          Inventory Management
-        </h1>
-        <p class="page-description">Track inventory items and their material requirements in real-time</p>
-      </div>
-      <div class="header-actions">
-        <div class="btn-group">
-          <div class="dropdown" [class.open]="showTableDropdown">
-            <button class="btn btn-outline dropdown-toggle" (click)="toggleTableDropdown()">
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                <path d="M4 8h8M8 4v8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-              </svg>
-              Manage Tables
+    <div class="header-main">
+      <h1>Inventory Management</h1>
+      <p>Track inventory items and material requirements</p>
+    </div>
+    <div class="header-actions">
+      <div class="dropdown" [class.open]="showTableDropdown">
+        <button class="btn btn-outline" (click)="toggleTableDropdown()">
+          <span class="icon">📋</span>
+          Manage Tables
+        </button>
+        <div class="dropdown-menu" *ngIf="showTableDropdown">
+          <div class="dropdown-header">
+            <span>Tables</span>
+            <button class="btn-icon" (click)="createNewTable()" title="New Table">
+              <span>＋</span>
             </button>
-            <div class="dropdown-menu" *ngIf="showTableDropdown">
-              <div class="dropdown-header">
-                <span>Tables</span>
-                <button class="btn-icon" (click)="createNewTable()" title="Create New Table">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                    <path d="M6 2v8M2 6h8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-                  </svg>
-                </button>
-              </div>
-              <div class="dropdown-list">
-                <div *ngFor="let table of userTables" 
-                     class="dropdown-item" 
-                     [class.active]="currentTable?.id === table.id"
-                     (click)="selectTable(table)">
-                  <span class="table-name">{{ table.name || 'Unnamed Table' }}</span>
-                  <span class="table-count">{{ table.item_count || 0 }} items</span>
-                </div>
-                <div *ngIf="userTables.length === 0" class="dropdown-empty">
-                  No tables created yet
-                </div>
-              </div>
-              <div class="dropdown-divider"></div>
-              <div class="dropdown-item" (click)="createNewTable()">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path d="M6 2v8M2 6h8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-                </svg>
-                Create New Table
-              </div>
-            </div>
           </div>
-          <button class="btn btn-primary" (click)="exportData()" [disabled]="filteredItems.length === 0">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-              <path d="M8 2V8M8 8L10.5 5.5M8 8L5.5 5.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-              <path d="M13.333 10V12.667C13.333 13.403 12.736 14 12 14H4C3.264 14 2.667 13.403 2.667 12.667V10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-              <path d="M11.333 10H4.667" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-            </svg>
-            Export
-          </button>
+          <div class="dropdown-list">
+            <div *ngFor="let table of userTables" 
+                 class="dropdown-item" 
+                 [class.active]="currentTable?.id === table.id"
+                 (click)="selectTable(table)">
+              <span class="name">{{ table.name || 'Untitled' }}</span>
+              <span class="count">{{ table.item_count || 0 }}</span>
+            </div>
+            <div *ngIf="userTables.length === 0" class="empty">No tables</div>
+          </div>
+          <div class="divider"></div>
+          <div class="dropdown-item" (click)="createNewTable()">
+            <span class="icon">＋</span>
+            Create New Table
+          </div>
         </div>
       </div>
+      <button class="btn btn-primary" (click)="exportData()" [disabled]="filteredItems.length === 0">
+        <span class="icon">📤</span>
+        Export
+      </button>
     </div>
   </div>
 
-  <!-- Upload Master Data -->
-  <div class="section-card">
-    <div class="section-header">
-      <div class="section-title-group">
-        <h3 class="section-title">Master Data</h3>
-        <p class="section-subtitle">Upload Excel file with SKU and material information</p>
+  <!-- Master Data Upload -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h3>Master Data</h3>
+        <p>Upload Excel file with SKU data</p>
       </div>
-      <div class="file-upload-wrapper">
-        <label class="file-upload-label">
-          <input 
-            type="file" 
-            accept=".xlsx,.xls" 
-            (change)="onFileSelected($event)" 
-            [disabled]="uploadingMaster"
-            class="file-input"
-          />
-          <div class="file-upload-content" [class.uploading]="uploadingMaster">
-            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M17 8h-2m2 4h-4M3 6h14M5 6V4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2m-6 4v6m-3-3h6"/>
-            </svg>
-            <span>{{ uploadingMaster ? 'Uploading...' : 'Upload Excel File' }}</span>
+      <div class="upload">
+        <label>
+          <input type="file" accept=".xlsx,.xls" (change)="onFileSelected($event)" [disabled]="uploadingMaster">
+          <div class="upload-btn" [class.uploading]="uploadingMaster">
+            <span class="icon">📄</span>
+            <span>{{ uploadingMaster ? 'Uploading...' : 'Upload Excel' }}</span>
           </div>
         </label>
-        <div class="upload-status" [class.success]="uploadStatus.includes('Success')" [class.error]="uploadStatus.includes('Error') || uploadStatus.includes('fail')">
+        <div class="status" [class.success]="uploadStatus.includes('Success')" [class.error]="uploadStatus.includes('Error')">
           {{ uploadStatus }}
         </div>
       </div>
@@ -116,82 +89,51 @@
   </div>
 
   <!-- Add New Item -->
-  <div class="section-card">
-    <div class="section-header">
-      <div class="section-title-group">
-        <h3 class="section-title">Add Inventory Item</h3>
-        <p class="section-subtitle">Add new items to your inventory</p>
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h3>Add Item</h3>
+        <p>Add new inventory items</p>
       </div>
     </div>
-    <div class="form-container">
+    <div class="card-body">
       <div class="form-grid">
-        <div class="form-field">
-          <label class="form-label">Category</label>
-          <select 
-            [(ngModel)]="newItem.category" 
-            (ngModelChange)="onCategoryChange()" 
-            class="form-select"
-            [class.disabled]="!categories.length"
-          >
+        <div class="form-group">
+          <label>Category</label>
+          <select [(ngModel)]="newItem.category" (ngModelChange)="onCategoryChange()" [disabled]="!categories.length">
             <option value="">Select Category</option>
             <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
           </select>
         </div>
 
-        <div class="form-field">
-          <label class="form-label">SKU</label>
-          <select 
-            [(ngModel)]="newItem.sku_code" 
-            (ngModelChange)="onSkuChange()" 
-            [disabled]="!newItem.category || !availableSkus.length"
-            class="form-select"
-          >
+        <div class="form-group">
+          <label>SKU</label>
+          <select [(ngModel)]="newItem.sku_code" (ngModelChange)="onSkuChange()" [disabled]="!newItem.category">
             <option value="">Select SKU</option>
-            <option *ngFor="let s of availableSkus" [value]="s.sku_code">
-              {{ s.sku_code }} — {{ s.sku_name }}
-            </option>
+            <option *ngFor="let s of availableSkus" [value]="s.sku_code">{{ s.sku_code }} — {{ s.sku_name }}</option>
           </select>
         </div>
 
-        <div class="form-field">
-          <label class="form-label">SKU Code</label>
-          <div class="readonly-field">
-            {{ newItem.sku_code || '—' }}
-          </div>
+        <div class="form-group">
+          <label>SKU Code</label>
+          <div class="readonly">{{ newItem.sku_code || '—' }}</div>
         </div>
 
-        <div class="form-field">
-          <label class="form-label">Supplier</label>
-          <input 
-            [(ngModel)]="newItem.supplier" 
-            class="form-input" 
-            placeholder="Enter supplier"
-            type="text"
-          >
+        <div class="form-group">
+          <label>Supplier</label>
+          <input [(ngModel)]="newItem.supplier" placeholder="Enter supplier" type="text">
         </div>
 
-        <div class="form-field">
-          <label class="form-label">Quantity</label>
-          <input 
-            [(ngModel)]="newItem.qty" 
-            class="form-input" 
-            placeholder="Enter quantity"
-            type="number"
-            min="1"
-            (input)="onQuantityChange()"
-          >
+        <div class="form-group">
+          <label>Quantity</label>
+          <input [(ngModel)]="newItem.qty" placeholder="Qty" type="number" min="1" (input)="onQuantityChange()">
         </div>
 
-        <div class="form-field">
-          <label class="form-label">&nbsp;</label>
-          <button 
-            class="btn btn-primary btn-block" 
-            (click)="addItem()" 
-            [disabled]="!canAddItem()"
-            [class.loading]="addingItem"
-          >
+        <div class="form-group">
+          <label>&nbsp;</label>
+          <button class="btn btn-primary" (click)="addItem()" [disabled]="!canAddItem()" [class.loading]="addingItem">
             <span *ngIf="addingItem" class="spinner"></span>
-            {{ addingItem ? 'Adding...' : 'Add Item' }}
+            <span *ngIf="!addingItem">＋ Add Item</span>
           </button>
         </div>
       </div>
@@ -199,75 +141,43 @@
   </div>
 
   <!-- Search and Filter -->
-  <div class="section-card">
-    <div class="filter-container">
-      <div class="search-box">
-        <svg class="search-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-          <circle cx="9" cy="9" r="7"/>
-          <path d="M15 15l-3-3" stroke-linecap="round"/>
-        </svg>
-        <input 
-          type="text" 
-          class="search-input" 
-          placeholder="Search SKU, supplier, or category..." 
-          [(ngModel)]="searchQuery" 
-          (input)="applyFilter()"
-        />
-        <button class="clear-search" *ngIf="searchQuery" (click)="searchQuery = ''; applyFilter()">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M9 3L3 9M3 3l6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-          </svg>
-        </button>
-      </div>
-      <div class="filter-actions">
-        <select 
-          [(ngModel)]="filterCategory" 
-          (ngModelChange)="applyFilter()" 
-          class="filter-select"
-        >
-          <option value="">All Categories</option>
-          <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
-        </select>
-        <button class="btn btn-secondary" (click)="clearFilters()">
-          Clear Filters
-        </button>
+  <div class="card">
+    <div class="card-body">
+      <div class="search-filter">
+        <div class="search">
+          <span class="search-icon">🔍</span>
+          <input type="text" placeholder="Search..." [(ngModel)]="searchQuery" (input)="applyFilter()">
+          <button class="clear" *ngIf="searchQuery" (click)="searchQuery = ''; applyFilter()">×</button>
+        </div>
+        <div class="filters">
+          <select [(ngModel)]="filterCategory" (ngModelChange)="applyFilter()">
+            <option value="">All Categories</option>
+            <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+          </select>
+          <button class="btn btn-outline" (click)="clearFilters()">Clear</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Current Table Info -->
-  <div class="section-card" *ngIf="currentTable">
-    <div class="table-info">
-      <div class="table-info-content">
-        <div class="table-info-header">
-          <h3 class="table-info-title">{{ currentTable.name || 'Unnamed Table' }}</h3>
-          <div class="table-info-badges">
-            <span class="table-info-badge">
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-                <path d="M4 4h8v8H4z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-              </svg>
-              {{ filteredItems.length }} items
-            </span>
-            <span class="table-info-badge">
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-                <path d="M4 10h8M10 4v8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-              </svg>
-              {{ totalQuantity | number:'1.0-0' }} total qty
-            </span>
+  <!-- Current Table -->
+  <div class="card" *ngIf="currentTable">
+    <div class="card-body">
+      <div class="table-info">
+        <div>
+          <h4>{{ currentTable.name || 'Untitled' }}</h4>
+          <div class="badges">
+            <span class="badge">📦 {{ filteredItems.length }} items</span>
+            <span class="badge">📊 {{ totalQuantity | number:'1.0-0' }} total</span>
           </div>
         </div>
-        <div class="table-info-actions">
+        <div class="actions">
           <button class="btn btn-outline btn-sm" (click)="renameTable(currentTable)">
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-              <path d="M11.333 2.667a1.333 1.333 0 0 1 1.885 1.885l-.667.667-1.886-1.886.668-.666z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-              <path d="M10 3.667L4.667 9v1.333H6L11.333 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-            </svg>
+            <span class="icon">✏️</span>
             Rename
           </button>
-          <button class="btn btn-outline btn-sm btn-danger" (click)="deleteTable(currentTable)">
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-              <path d="M4 4h8v9.333a1.333 1.333 0 0 1-1.333 1.334H5.333A1.333 1.333 0 0 1 4 13.333V4zM6 2h4a1 1 0 0 1 1 1v1H5V3a1 1 0 0 1 1-1zM6 6v6M10 6v6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-            </svg>
+          <button class="btn btn-outline btn-sm danger" (click)="deleteTable(currentTable)">
+            <span class="icon">🗑️</span>
             Delete
           </button>
         </div>
@@ -276,191 +186,116 @@
   </div>
 
   <!-- Inventory Table -->
-  <div class="section-card table-section">
-    <div class="table-header">
-      <div class="table-title-group">
-        <h3 class="table-title">Inventory Items</h3>
-        <div class="table-badges">
-          <span class="table-badge">
-            <span class="badge-label">Showing</span>
-            <span class="badge-value">{{ filteredItems.length }}</span>
-          </span>
-          <span class="table-badge">
-            <span class="badge-label">Qty</span>
-            <span class="badge-value">{{ totalQuantity | number:'1.0-0' }}</span>
-          </span>
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h3>Inventory Items</h3>
+        <div class="badges">
+          <span class="badge">Showing {{ filteredItems.length }}</span>
+          <span class="badge">Qty {{ totalQuantity | number:'1.0-0' }}</span>
         </div>
       </div>
-      <div class="table-controls">
-        <div class="table-pagination">
-          <button class="pagination-btn" [disabled]="currentPage === 1" (click)="prevPage()">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M7.5 3l-3 3 3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-            </svg>
-          </button>
-          <span class="pagination-info">Page {{ currentPage }} of {{ totalPages }}</span>
-          <button class="pagination-btn" [disabled]="currentPage === totalPages" (click)="nextPage()">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M4.5 3l3 3-3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-            </svg>
-          </button>
-        </div>
+      <div class="pagination">
+        <button class="btn-icon" [disabled]="currentPage === 1" (click)="prevPage()">‹</button>
+        <span>Page {{ currentPage }} of {{ totalPages }}</span>
+        <button class="btn-icon" [disabled]="currentPage === totalPages" (click)="nextPage()">›</button>
       </div>
     </div>
 
     <div class="table-container">
-      <table class="data-table">
+      <table class="table">
         <thead>
           <tr>
-            <th class="col-expand"></th>
-            <th class="col-code">SKU Code</th>
-            <th class="col-name">Item Name</th>
-            <th class="col-category">Category</th>
-            <th class="col-qty">Quantity</th>
-            <th class="col-supplier">Supplier</th>
-            <th class="col-total">Total Required</th>
-            <th class="col-materials">Materials</th>
-            <th class="col-actions"></th>
+            <th></th>
+            <th>SKU Code</th>
+            <th>Item Name</th>
+            <th>Category</th>
+            <th>Qty</th>
+            <th>Supplier</th>
+            <th>Total Req</th>
+            <th>Materials</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
-          <ng-container *ngFor="let item of paginatedItems; let i = index">
-            <!-- Main Row -->
+          <ng-container *ngFor="let item of paginatedItems">
             <tr class="table-row" [class.expanded]="expandedRows[item.id]" (click)="toggleRow(item)">
-              <td class="col-expand">
-                <div class="expand-indicator" [class.expanded]="expandedRows[item.id]">
-                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
-                    <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                  </svg>
+              <td>
+                <div class="expand" [class.expanded]="expandedRows[item.id]">▼</div>
+              </td>
+              <td><span class="code">{{ item.sku_code }}</span></td>
+              <td>{{ item.sku_name || item.sku_code }}</td>
+              <td><span class="tag">{{ item.category }}</span></td>
+              <td class="bold">{{ item.qty | number }}</td>
+              <td>{{ item.supplier || '—' }}</td>
+              <td class="bold primary">{{ calculateTotalRequired(item) | number:'1.2-2' }}</td>
+              <td>
+                <div class="mats" [class.has]="(item.materialCount ?? 0) > 0">
+                  <span>{{ item.materialCount ?? '?' }}</span>
                 </div>
               </td>
-              <td class="col-code">
-                <div class="sku-code">{{ item.sku_code }}</div>
-              </td>
-              <td class="col-name">
-                <div class="item-name">{{ item.sku_name || item.sku_code }}</div>
-              </td>
-              <td class="col-category">
-                <span class="category-tag">{{ item.category }}</span>
-              </td>
-              <td class="col-qty">
-                <div class="quantity-display">
-                  <span class="quantity-value">{{ item.qty | number }}</span>
-                </div>
-              </td>
-              <td class="col-supplier">
-                <div class="supplier-info">{{ item.supplier || '—' }}</div>
-              </td>
-              <td class="col-total">
-                <div class="total-required">
-                  {{ calculateTotalRequired(item) | number:'1.2-2' }}
-                  <span class="total-unit" *ngIf="item.materials && item.materials.length > 0">
-                    {{ item.materials[0]?.unit || '' }}
-                  </span>
-                </div>
-              </td>
-              <td class="col-materials">
-                <div class="materials-indicator" [class.has-materials]="(item.materialCount ?? 0) > 0">
-                  <span class="materials-count">{{ item.materialCount ?? '?' }}</span>
-                  <span class="materials-label">mats</span>
-                </div>
-              </td>
-              <td class="col-actions" (click)="$event.stopPropagation()">
-                <button class="action-btn delete-btn" (click)="deleteItem(item.id, $event)" title="Delete">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                    <path d="M4 4h8v9.333a1.333 1.333 0 0 1-1.333 1.334H5.333A1.333 1.333 0 0 1 4 13.333V4zM6 2h4a1 1 0 0 1 1 1v1H5V3a1 1 0 0 1 1-1zM6 6v6M10 6v6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-                  </svg>
-                </button>
+              <td>
+                <button class="btn-icon danger" (click)="deleteItem(item.id, $event)" title="Delete">🗑️</button>
               </td>
             </tr>
             
-            <!-- Expanded Materials Row -->
-            <tr class="detail-row" *ngIf="expandedRows[item.id]">
+            <!-- Expanded Row -->
+            <tr class="expanded-row" *ngIf="expandedRows[item.id]">
               <td colspan="9">
-                <div class="detail-content" [class.loading]="loadingMaterials[item.id]">
-                  <!-- Loading State -->
-                  <div *ngIf="loadingMaterials[item.id]" class="loading-materials">
-                    <div class="spinner small"></div>
-                    <span>Loading materials...</span>
+                <div class="expanded-content">
+                  <div *ngIf="loadingMaterials[item.id]" class="loading">
+                    <span class="spinner small"></span>
+                    <span>Loading...</span>
                   </div>
                   
-                  <!-- Materials Table -->
-                  <div *ngIf="!loadingMaterials[item.id] && item.materials && item.materials.length > 0" class="materials-table-container">
-                    <div class="materials-header">
-                      <h4 class="materials-title">Raw Materials Breakdown</h4>
-                      <div class="materials-summary">
-                        <span class="summary-item">
-                          <span class="summary-label">Total Items:</span>
-                          <span class="summary-value">{{ item.materials.length }}</span>
-                        </span>
-                        <span class="summary-item">
-                          <span class="summary-label">Total Required:</span>
-                          <span class="summary-value">{{ calculateTotalRequired(item) | number:'1.2-2' }}</span>
-                        </span>
+                  <div *ngIf="!loadingMaterials[item.id] && item.materials && item.materials.length > 0">
+                    <div class="expanded-header">
+                      <h4>Raw Materials</h4>
+                      <div class="summary">
+                        <span>{{ item.materials.length }} items</span>
+                        <span>{{ calculateTotalRequired(item) | number:'1.2-2' }} total</span>
                       </div>
                     </div>
                     
-                    <div class="materials-table-wrapper">
-                      <table class="materials-table">
+                    <div class="materials-table">
+                      <table>
                         <thead>
                           <tr>
-                            <th class="mat-col-material">Raw Material</th>
-                            <th class="mat-col-qty">Qty/Batch</th>
-                            <th class="mat-col-unit">Unit</th>
-                            <th class="mat-col-type">Type</th>
-                            <th class="mat-col-total">Total Required</th>
+                            <th>Material</th>
+                            <th>Qty/Batch</th>
+                            <th>Unit</th>
+                            <th>Type</th>
+                            <th>Total</th>
                           </tr>
                         </thead>
                         <tbody>
-                          <tr *ngFor="let mat of item.materials" class="material-row">
-                            <td class="mat-col-material">
-                              <div class="material-name">{{ mat.raw_material || '—' }}</div>
-                            </td>
-                            <td class="mat-col-qty">
-                              <div class="quantity-value">{{ mat.quantity_per_batch ?? '—' }}</div>
-                            </td>
-                            <td class="mat-col-unit">
-                              <span class="unit-badge">{{ mat.unit || '—' }}</span>
-                            </td>
-                            <td class="mat-col-type">
-                              <span class="material-type-badge" [class]="getTypeClass(mat.type)">{{ mat.type || 'N/A' }}</span>
-                            </td>
-                            <td class="mat-col-total">
-                              <div class="total-value">
-                                {{ calculateMaterialTotal(item.qty, mat.quantity_per_batch) | number:'1.2-2' }}
-                              </div>
-                            </td>
+                          <tr *ngFor="let mat of item.materials">
+                            <td>{{ mat.raw_material || '—' }}</td>
+                            <td class="bold">{{ mat.quantity_per_batch ?? '—' }}</td>
+                            <td><span class="tag">{{ mat.unit || '—' }}</span></td>
+                            <td><span class="tag type">{{ mat.type || 'N/A' }}</span></td>
+                            <td class="bold primary">{{ calculateMaterialTotal(item.qty, mat.quantity_per_batch) | number:'1.2-2' }}</td>
                           </tr>
                         </tbody>
                       </table>
                     </div>
                   </div>
                   
-                  <!-- No Materials State -->
-                  <div *ngIf="!loadingMaterials[item.id] && (!item.materials || item.materials.length === 0)" class="no-materials">
-                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5">
-                      <path d="M8 8h32v32H8zM16 16h16v16H16z" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M24 20v8M20 24h8" stroke-linecap="round"/>
-                    </svg>
-                    <p>No materials defined for this SKU</p>
+                  <div *ngIf="!loadingMaterials[item.id] && (!item.materials || item.materials.length === 0)" class="empty">
+                    <span class="icon">📦</span>
+                    <p>No materials defined</p>
                   </div>
                 </div>
               </td>
             </tr>
           </ng-container>
           
-          <!-- Empty State -->
           <tr *ngIf="filteredItems.length === 0">
             <td colspan="9">
               <div class="empty-state">
-                <svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M16 16h32v32H16z" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M24 24h16v16H24z" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M32 28v8M28 32h8" stroke-linecap="round"/>
-                </svg>
-                <h3>No inventory items found</h3>
-                <p *ngIf="searchQuery || filterCategory">Try adjusting your search or filters</p>
-                <p *ngIf="!searchQuery && !filterCategory">Add your first inventory item to get started</p>
+                <h4>No items found</h4>
+                <p *ngIf="searchQuery || filterCategory">Try adjusting filters</p>
+                <p *ngIf="!searchQuery && !filterCategory">Add your first item</p>
               </div>
             </td>
           </tr>
@@ -468,17 +303,13 @@
       </table>
     </div>
     
-    <!-- Table Footer -->
-    <div class="table-footer">
-      <div class="footer-info">
-        Showing {{ (currentPage - 1) * pageSize + 1 }}-{{ Math.min(currentPage * pageSize, filteredItems.length) }} of {{ filteredItems.length }} items
-      </div>
-      <div class="footer-actions">
-        <select class="page-size-select" [(ngModel)]="pageSize" (change)="onPageSizeChange()">
+    <div class="card-footer">
+      <div>Showing {{ (currentPage - 1) * pageSize + 1 }}-{{ Math.min(currentPage * pageSize, filteredItems.length) }} of {{ filteredItems.length }}</div>
+      <div>
+        <select [(ngModel)]="pageSize" (change)="onPageSizeChange()">
           <option value="10">10 per page</option>
           <option value="25">25 per page</option>
           <option value="50">50 per page</option>
-          <option value="100">100 per page</option>
         </select>
       </div>
     </div>
