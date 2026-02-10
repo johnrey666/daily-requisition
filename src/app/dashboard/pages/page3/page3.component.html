@@ -81,96 +81,302 @@
   </div>
 </div>
 
-<!-- Modal -->
+<!-- Enhanced Modal -->
 <div class="modal" [class.active]="showModal">
   <div class="modal-backdrop" (click)="closeModal()"></div>
   <div class="modal-content">
+    <!-- Modal Header -->
     <div class="modal-header">
-      <h3>New Requisition</h3>
-      <button class="close" (click)="closeModal()">
+      <div class="modal-header-content">
+        <div class="modal-header-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="modal-title">Create New Requisition</h3>
+          <p class="modal-subtitle">Fill in the details below to create a new material request</p>
+        </div>
+      </div>
+      <button class="modal-close" (click)="closeModal()" aria-label="Close">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M18 6L6 18M6 6l12 12"/>
         </svg>
       </button>
     </div>
     
+    <!-- Modal Body -->
     <div class="modal-body">
+      <div class="form-stepper">
+        <div class="stepper">
+          <div class="step active">
+            <div class="step-number">1</div>
+            <div class="step-label">Basic Info</div>
+          </div>
+          <div class="step-line"></div>
+          <div class="step">
+            <div class="step-number">2</div>
+            <div class="step-label">Materials</div>
+          </div>
+          <div class="step-line"></div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <div class="step-label">Review</div>
+          </div>
+        </div>
+      </div>
+
       <div class="form">
-        <div class="form-group">
-          <label>Requisition Type *</label>
-          <select>
-            <option>Select Type</option>
-            <option>Perishable</option>
-            <option>Shelf-Stable</option>
-          </select>
+        <div class="form-section">
+          <div class="section-header">
+            <h4>Requisition Details</h4>
+            <span class="section-subtitle">Core information about your request</span>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="req-type">
+                Requisition Type
+                <span class="required">*</span>
+              </label>
+              <div class="input-with-icon">
+                <select id="req-type" class="select-enhanced">
+                  <option value="" disabled selected>Select Type</option>
+                  <option value="perishable">Perishable</option>
+                  <option value="shelf">Shelf-Stable</option>
+                  <option value="urgent">Urgent</option>
+                  <option value="routine">Routine</option>
+                </select>
+                <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 5l7 7-7 7"/>
+                </svg>
+              </div>
+              <div class="input-hint">Choose based on material shelf life</div>
+            </div>
+            
+            <div class="form-group">
+              <label for="category">
+                Category
+                <span class="required">*</span>
+              </label>
+              <div class="input-with-icon">
+                <select id="category" class="select-enhanced">
+                  <option value="" disabled selected>Select Category</option>
+                  <option value="raw">Raw Materials</option>
+                  <option value="components">Components</option>
+                  <option value="packaging">Packaging</option>
+                  <option value="chemicals">Chemicals</option>
+                  <option value="tools">Tools & Equipment</option>
+                </select>
+                <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 5l7 7-7 7"/>
+                </svg>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="sku">
+                SKU Code
+                <span class="required">*</span>
+              </label>
+              <div class="input-with-icon">
+                <select id="sku" class="select-enhanced">
+                  <option value="" disabled selected>Search or select SKU</option>
+                  <option value="SKU-001">SKU-001 - Steel Sheets</option>
+                  <option value="SKU-002">SKU-002 - Electrical Components</option>
+                  <option value="SKU-003">SKU-003 - Packaging Supplies</option>
+                  <option value="SKU-004">SKU-004 - Safety Equipment</option>
+                </select>
+                <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+              </div>
+              <div class="input-hint">Select or search for existing SKU</div>
+            </div>
+            
+            <div class="form-group">
+              <label for="quantity">
+                Quantity
+                <span class="required">*</span>
+              </label>
+              <div class="input-with-icon">
+                <input type="number" id="quantity" value="1" min="1" class="input-enhanced" placeholder="Enter quantity">
+                <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 6v12m6-6H6"/>
+                </svg>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="unit">
+                Unit of Measure
+                <span class="required">*</span>
+              </label>
+              <div class="input-with-icon">
+                <select id="unit" class="select-enhanced">
+                  <option value="" disabled selected>Select Unit</option>
+                  <option value="kg">Kilograms (kg)</option>
+                  <option value="g">Grams (g)</option>
+                  <option value="units">Units</option>
+                  <option value="boxes">Boxes</option>
+                  <option value="liters">Liters (L)</option>
+                  <option value="meters">Meters (m)</option>
+                </select>
+                <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 5l7 7-7 7"/>
+                </svg>
+              </div>
+            </div>
+          </div>
         </div>
-        
-        <div class="form-group">
-          <label>Category *</label>
-          <select>
-            <option>Select Category</option>
-            <option>Raw Materials</option>
-            <option>Components</option>
-          </select>
+
+        <div class="form-section">
+          <div class="section-header">
+            <h4>Timing & Supplier</h4>
+            <span class="section-subtitle">Delivery requirements and sourcing</span>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="date-needed">
+                Date Needed
+                <span class="optional">(optional)</span>
+              </label>
+              <div class="input-with-icon">
+                <input type="date" id="date-needed" class="input-enhanced date-input">
+                <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+              </div>
+              <div class="input-hint">Leave empty for ASAP delivery</div>
+            </div>
+            
+            <div class="form-group">
+              <label for="priority">
+                Priority Level
+              </label>
+              <div class="priority-selector">
+                <div class="priority-option" [class.active]="selectedPriority === 'low'">
+                  <div class="priority-dot" style="background: #10b981;"></div>
+                  <span>Low</span>
+                </div>
+                <div class="priority-option" [class.active]="selectedPriority === 'medium'">
+                  <div class="priority-dot" style="background: #f59e0b;"></div>
+                  <span>Medium</span>
+                </div>
+                <div class="priority-option" [class.active]="selectedPriority === 'high'">
+                  <div class="priority-dot" style="background: #ef4444;"></div>
+                  <span>High</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="supplier">
+                Preferred Supplier
+                <span class="required">*</span>
+              </label>
+              <div class="input-with-icon">
+                <select id="supplier" class="select-enhanced">
+                  <option value="" disabled selected>Select Supplier</option>
+                  <option value="supplier-a">Supplier A - Steel Works Inc.</option>
+                  <option value="supplier-b">Supplier B - Electrical Parts Co.</option>
+                  <option value="supplier-c">Supplier C - Packaging Solutions</option>
+                  <option value="supplier-d">Supplier D - Safety Gear Ltd.</option>
+                </select>
+                <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                </svg>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="brand">
+                Brand Preference
+              </label>
+              <div class="input-with-icon">
+                <select id="brand" class="select-enhanced">
+                  <option value="" disabled selected>Select Brand (optional)</option>
+                  <option value="brand-x">Brand X - Premium Quality</option>
+                  <option value="brand-y">Brand Y - Standard Grade</option>
+                  <option value="brand-z">Brand Z - Economy Option</option>
+                </select>
+                <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+              </div>
+            </div>
+          </div>
         </div>
-        
-        <div class="form-group">
-          <label>SKU *</label>
-          <select>
-            <option>Select SKU</option>
-            <option>SKU-001 - Steel Sheets</option>
-            <option>SKU-002 - Electrical</option>
-          </select>
-        </div>
-        
-        <div class="form-group">
-          <label>Quantity *</label>
-          <input type="number" value="1" min="1">
-        </div>
-        
-        <div class="form-group">
-          <label>Unit *</label>
-          <select>
-            <option>Select Unit</option>
-            <option>kg</option>
-            <option>units</option>
-          </select>
-        </div>
-        
-        <div class="form-group">
-          <label>Date Needed</label>
-          <input type="date">
-          <small>ASAP if empty</small>
-        </div>
-        
-        <div class="form-group">
-          <label>Supplier *</label>
-          <select>
-            <option>Select Supplier</option>
-            <option>Supplier A</option>
-            <option>Supplier B</option>
-          </select>
-        </div>
-        
-        <div class="form-group">
-          <label>Brand *</label>
-          <select>
-            <option>Select Brand</option>
-            <option>Brand X</option>
-            <option>Brand Y</option>
-          </select>
-        </div>
-        
-        <div class="form-group full">
-          <label>Remarks</label>
-          <textarea rows="2" placeholder="Additional notes..."></textarea>
+
+        <div class="form-section">
+          <div class="section-header">
+            <h4>Additional Information</h4>
+            <span class="section-subtitle">Provide context for your request</span>
+          </div>
+          <div class="form-group full-width">
+            <label for="remarks">
+              Remarks
+              <span class="optional">(optional)</span>
+            </label>
+            <div class="textarea-container">
+              <textarea 
+                id="remarks" 
+                rows="4" 
+                class="textarea-enhanced" 
+                placeholder="Add any special instructions, delivery requirements, or additional context for this requisition..."
+              ></textarea>
+              <div class="textarea-footer">
+                <span class="char-count">0/500 characters</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="attachment-section">
+            <label class="attachment-label">
+              <input type="file" class="attachment-input" multiple>
+              <div class="attachment-preview">
+                <svg class="attachment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                  <path d="M9 10l3-3m0 0l3 3m-3-3v12"/>
+                </svg>
+                <span>Attach files (optional)</span>
+                <small>Drag & drop or click to upload specifications, drawings, or references</small>
+              </div>
+            </label>
+          </div>
         </div>
       </div>
     </div>
     
+    <!-- Modal Footer -->
     <div class="modal-footer">
-      <button class="btn btn-outline" (click)="closeModal()">Cancel</button>
-      <button class="btn btn-primary">Add Requisition</button>
+      <div class="footer-actions">
+        <button class="btn btn-ghost" (click)="closeModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+          Cancel
+        </button>
+        <div class="primary-actions">
+          <button class="btn btn-outline">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+              <path d="M17 21v-8H7v8"/>
+              <path d="M7 3v5h8"/>
+            </svg>
+            Save Draft
+          </button>
+          <button class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 13l4 4L19 7"/>
+            </svg>
+            Submit Requisition
+          </button>
+        </div>
+      </div>
+      <div class="footer-info">
+        <span class="info-text">All fields marked with <span class="required">*</span> are required</span>
+        <span class="info-text">Requisition will be sent for approval</span>
+      </div>
     </div>
   </div>
 </div>
