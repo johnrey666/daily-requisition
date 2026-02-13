@@ -55,7 +55,7 @@ export class Page3Component implements OnInit {
   formData: any = {
     type: '',
     category: '',
-    sku: '',
+    skuName: '',
     quantity: null,
     unit: '',
     dateNeeded: '',
@@ -65,6 +65,9 @@ export class Page3Component implements OnInit {
     customBrand: '',
     remarks: ''
   };
+
+  // Selected SKU Code (auto-generated from SKU name)
+  selectedSkuCode: string = '';
 
   // Filter & Pagination
   searchQuery = '';
@@ -87,7 +90,7 @@ export class Page3Component implements OnInit {
 
   // User context - should come from auth service
   private readonly userId = 'demo-user-123';
-  private readonly tableId = 'all'; // or get from route/context
+  private readonly tableId = 'all';
 
   constructor(private db: DatabaseService) {}
 
@@ -107,24 +110,36 @@ export class Page3Component implements OnInit {
   async onCategoryChange() {
     if (!this.formData.category) {
       this.availableSkus = [];
-      this.formData.sku = '';
+      this.formData.skuName = '';
+      this.selectedSkuCode = '';
       return;
     }
 
     try {
       this.availableSkus = await this.db.getSkusByCategory(this.formData.category);
-      this.formData.sku = '';
+      this.formData.skuName = '';
+      this.selectedSkuCode = '';
     } catch (err) {
       console.error('Failed to load SKUs:', err);
       this.showToast('Could not load SKUs', 'error');
     }
   }
 
+  onSkuNameSelect() {
+    if (!this.formData.skuName) {
+      this.selectedSkuCode = '';
+      return;
+    }
+
+    const selectedItem = this.availableSkus.find(item => item.sku_name === this.formData.skuName);
+    this.selectedSkuCode = selectedItem ? selectedItem.sku_code : '';
+  }
+
   async loadRequisitions() {
     this.isLoading = true;
     try {
       this.requisitions = await this.db.getTableRequisitions(this.tableId, this.userId);
-      console.log('Loaded requisitions:', this.requisitions); // Debug
+      console.log('Loaded requisitions:', this.requisitions);
       this.applyFilter();
     } catch (err) {
       console.error('Failed to load requisitions:', err);
@@ -172,9 +187,10 @@ export class Page3Component implements OnInit {
     this.isSubmitting = true;
 
     try {
-      // Parse SKU
-      const [skuCode, ...nameParts] = this.formData.sku.split(' — ');
-      const skuName = nameParts.join(' — ').trim();
+      // Get SKU name and code
+      const skuName = this.formData.skuName;
+      const selectedItem = this.availableSkus.find(item => item.sku_name === skuName);
+      const skuCode = selectedItem ? selectedItem.sku_code : '';
 
       // Generate requisition number
       let nextNumber = 1;
@@ -215,7 +231,7 @@ export class Page3Component implements OnInit {
       const res = await this.db.createRequisition(requisitionData, []);
       
       if (res.success) {
-        await this.loadRequisitions(); // Refresh the list
+        await this.loadRequisitions();
         this.showToast('Requisition submitted successfully', 'success');
         this.closeModal();
       } else {
@@ -250,7 +266,7 @@ export class Page3Component implements OnInit {
   validateForm(): boolean {
     if (!this.formData.type || 
         !this.formData.category || 
-        !this.formData.sku ||
+        !this.formData.skuName ||
         !this.formData.quantity || 
         this.formData.quantity <= 0 ||
         !this.formData.unit || 
@@ -279,7 +295,7 @@ export class Page3Component implements OnInit {
     this.formData = {
       type: '',
       category: '',
-      sku: '',
+      skuName: '',
       quantity: null,
       unit: '',
       dateNeeded: '',
@@ -289,6 +305,7 @@ export class Page3Component implements OnInit {
       customBrand: '',
       remarks: ''
     };
+    this.selectedSkuCode = '';
   }
 
   onSupplierChange() {

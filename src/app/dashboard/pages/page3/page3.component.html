@@ -89,8 +89,8 @@
             <th>Req #</th>
             <th>Type</th>
             <th>Date</th>
-            <th>SKU</th>
-            <th>Name</th>
+            <th>SKU Code</th>
+            <th>SKU Name</th>
             <th>Qty</th>
             <th>Unit</th>
             <th>Supplier</th>
@@ -223,21 +223,34 @@
 
           <div class="row">
             <div class="field">
-              <label>SKU *</label>
+              <label>SKU Name *</label>
               <select 
-                [(ngModel)]="formData.sku" 
-                name="sku"
+                [(ngModel)]="formData.skuName" 
+                name="skuName"
+                (change)="onSkuNameSelect()"
                 [disabled]="!formData.category || availableSkus.length === 0">
                 <option value="" disabled selected>
-                  {{ !formData.category ? 'Select category first' : 'Select SKU' }}
+                  {{ !formData.category ? 'Select category first' : 'Select SKU name' }}
                 </option>
-                <option *ngFor="let item of availableSkus" [value]="item.sku_code + ' — ' + item.sku_name">
-                  {{ item.sku_code }}
+                <option *ngFor="let item of availableSkus" [value]="item.sku_name">
+                  {{ item.sku_name }}
                 </option>
               </select>
-              <span class="error" *ngIf="submitted && !formData.sku">Required</span>
+              <span class="error" *ngIf="submitted && !formData.skuName">Required</span>
             </div>
 
+            <div class="field">
+              <label>SKU Code *</label>
+              <input 
+                type="text" 
+                [value]="selectedSkuCode" 
+                readonly
+                class="readonly"
+                placeholder="Auto-generated from SKU name">
+            </div>
+          </div>
+
+          <div class="row">
             <div class="field">
               <label>Quantity *</label>
               <input 
@@ -250,9 +263,7 @@
               <span class="error" *ngIf="submitted && !formData.quantity">Required</span>
               <span class="error" *ngIf="submitted && formData.quantity <= 0">Must be > 0</span>
             </div>
-          </div>
 
-          <div class="row">
             <div class="field">
               <label>Unit *</label>
               <select [(ngModel)]="formData.unit" name="unit">
@@ -266,7 +277,9 @@
               </select>
               <span class="error" *ngIf="submitted && !formData.unit">Required</span>
             </div>
+          </div>
 
+          <div class="row">
             <div class="field">
               <label>Date needed</label>
               <input 
@@ -275,9 +288,7 @@
                 name="dateNeeded"
                 [min]="today">
             </div>
-          </div>
 
-          <div class="row">
             <div class="field">
               <label>Supplier *</label>
               <select 
@@ -292,7 +303,9 @@
               </select>
               <span class="error" *ngIf="submitted && !formData.supplier">Required</span>
             </div>
+          </div>
 
+          <div class="row">
             <div class="field" *ngIf="formData.supplier === '__other__'">
               <label>Supplier name *</label>
               <input 

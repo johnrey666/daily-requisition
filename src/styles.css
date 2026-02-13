@@ -23,6 +23,7 @@
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 210 40% 98%;
   --radius: 0.5rem;
+  --scale-factor: 0.8; /* 80% zoom out */
 }
 
 .dark {
@@ -42,6 +43,7 @@
   --accent-foreground: 210 40% 98%;
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 210 40% 98%;
+  --scale-factor: 0.8; /* 80% zoom out */
 }
 
 html {
@@ -61,6 +63,30 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* GLOBAL ZOOM OUT EFFECT - Method 1: CSS Zoom (Preferred) */
+body {
+  zoom: 0.8; /* 80% zoom out */
+}
+
+/* GLOBAL ZOOM OUT EFFECT - Method 2: Transform Fallback for Firefox */
+@-moz-document url-prefix() {
+  body {
+    zoom: normal; /* Disable zoom in Firefox */
+    transform: scale(0.8);
+    transform-origin: top left;
+    width: 125%; /* Compensate for scale (100/0.8 = 125) */
+  }
+  
+  /* Fix for fixed positioning in Firefox */
+  .fixed,
+  .sticky,
+  [class*="mat-dialog"],
+  [class*="cdk-overlay"] {
+    transform: scale(0.8);
+    transform-origin: top left;
+  }
+}
+
 /* Smooth transitions for theme switching */
 html,
 body,
@@ -69,4 +95,30 @@ body,
 .nav-item,
 .header-icon-btn {
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+/* Override class to exclude specific elements from zooming */
+.no-zoom {
+  zoom: normal !important;
+  transform: none !important;
+}
+
+/* Fix for Angular Material components */
+.mat-mdc-dialog-panel,
+.cdk-overlay-pane,
+.mat-mdc-menu-panel,
+.mat-mdc-select-panel {
+  zoom: 0.8;
+}
+
+/* Firefox fix for Angular Material overlays */
+@-moz-document url-prefix() {
+  .mat-mdc-dialog-panel,
+  .cdk-overlay-pane,
+  .mat-mdc-menu-panel,
+  .mat-mdc-select-panel {
+    zoom: normal;
+    transform: scale(0.8);
+    transform-origin: top left;
+  }
 }

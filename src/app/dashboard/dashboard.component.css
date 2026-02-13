@@ -18,7 +18,7 @@
 .sidebar {
   width: var(--sidebar-width);
   min-width: var(--sidebar-width);
-  height: 100vh;
+  height: 125vh;
   position: sticky;
   top: 0;
   display: flex;
