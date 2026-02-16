@@ -53,6 +53,11 @@ h2 {
   margin-bottom: 24px;
 }
 
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
 /* ==========================================================================
    Buttons
    ========================================================================== */
@@ -107,9 +112,159 @@ h2 {
   color: #334155;
 }
 
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+  gap: 6px;
+}
+
+.btn-outline-danger {
+  background: transparent;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+
+.btn-outline-danger:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+.btn-outline-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-link {
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}
+
 .btn svg {
   width: 14px;
   height: 14px;
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.btn-icon:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* ==========================================================================
+   Dropdown
+   ========================================================================== */
+.dropdown {
+  position: relative;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 50;
+  min-width: 240px;
+  margin-top: 8px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.dropdown-header {
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  background: #f8fafc;
+}
+
+.dropdown-list {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.dropdown-item {
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  font-size: 13px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.dropdown-item:hover {
+  background: #f8fafc;
+}
+
+.dropdown-item.active {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.dropdown-item .name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdown-item .count {
+  font-size: 12px;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 12px;
+}
+
+.dropdown-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.dropdown-footer {
+  padding: 12px 16px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #2563eb;
+  cursor: pointer;
+}
+
+.dropdown-footer:hover {
+  background: #f8fafc;
 }
 
 /* ==========================================================================
@@ -166,6 +321,47 @@ h2 {
 
 .import-status.error {
   color: #dc2626;
+}
+
+/* ==========================================================================
+   Table Info Card
+   ========================================================================== */
+.table-info-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  padding: 16px 20px;
+}
+
+.table-info-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.stats {
+  display: flex;
+  gap: 16px;
+  margin-top: 6px;
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.stat svg {
+  color: #64748b;
+}
+
+.table-actions {
+  display: flex;
+  gap: 8px;
 }
 
 /* ==========================================================================
@@ -447,7 +643,7 @@ tr:hover td {
 }
 
 /* ==========================================================================
-   Empty State
+   Empty States
    ========================================================================== */
 .empty td {
   padding: 48px 16px;
@@ -476,6 +672,40 @@ tr:hover td {
 .empty p {
   font-size: 13px;
   color: #64748b;
+}
+
+.empty-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 48px 24px;
+  margin-bottom: 20px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.empty-state svg {
+  color: #94a3b8;
+}
+
+.empty-state h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.empty-state p {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
 }
 
 /* ==========================================================================
@@ -515,6 +745,10 @@ tr:hover td {
   border-radius: 8px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   animation: slideIn 0.2s ease;
+}
+
+.modal-sm {
+  max-width: 400px;
 }
 
 @keyframes slideIn {
@@ -731,9 +965,20 @@ tr:hover td {
     align-items: flex-start;
   }
 
-  .header button {
+  .header-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .header-actions .btn {
     width: 100%;
     justify-content: center;
+  }
+
+  .dropdown-menu {
+    right: auto;
+    left: 0;
+    width: 280px;
   }
 
   .card-header {
@@ -755,6 +1000,24 @@ tr:hover td {
     width: 100%;
   }
 
+  .table-info-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .stats {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .table-actions {
+    width: 100%;
+  }
+
+  .table-actions .btn {
+    flex: 1;
+  }
+
   .row {
     grid-template-columns: 1fr;
     gap: 12px;
@@ -774,5 +1037,16 @@ tr:hover td {
     left: 16px;
     right: 16px;
     min-width: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .import-body {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .import-badge {
+    margin-left: 0;
   }
 }

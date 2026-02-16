@@ -1,6 +1,7 @@
 import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import * as ExcelJS from 'exceljs';
 import { DatabaseService } from '../../../core/services/database.service';
 import { AuthService } from '../../../core/services/auth.service';
 
@@ -29,6 +30,7 @@ interface UserTable {
   id: string;
   name: string;
   user_id: string;
+  type: 'inventory' | 'requisition';
   item_count?: number;
   created_at?: string;
   updated_at?: string;
@@ -56,7 +58,7 @@ export class Page2Component implements OnInit {
   filteredItems: InventoryItem[] = [];
   paginatedItems: InventoryItem[] = [];
   
-  // Table Management
+  // Table Management - Only inventory type
   userTables: UserTable[] = [];
   currentTable: UserTable | null = null;
   showTableDropdown = false;
@@ -90,9 +92,13 @@ export class Page2Component implements OnInit {
   ) {}
 
   async ngOnInit() {
-    await this.loadCategories();
-    await this.loadUserTables();
-    // Don't load inventory until a table is selected
+    const user = await this.auth.getCurrentUserPromise();
+    if (user) {
+      await this.loadCategories();
+      await this.loadUserTables();
+    } else {
+      this.showToast('Please log in to continue', 'error');
+    }
   }
 
   async loadCategories() {
@@ -113,19 +119,23 @@ export class Page2Component implements OnInit {
         return;
       }
       
-      this.userTables = await this.db.getUserTables(userId);
+      // Only load inventory type tables
+      this.userTables = await this.db.getUserTablesByType(userId, 'inventory');
       
-      // Don't create default table - user must create their own
-      if (this.userTables.length === 0) {
-        this.currentTable = null;
+      // Load last selected table from localStorage or use first table
+      const lastTableId = localStorage.getItem(`lastSelectedInventoryTable_${userId}`);
+      if (lastTableId && this.userTables.some(t => t.id === lastTableId)) {
+        this.currentTable = this.userTables.find(t => t.id === lastTableId) || null;
+      } else if (this.userTables.length > 0) {
+        this.currentTable = this.userTables[0];
+      }
+      
+      if (this.currentTable) {
+        await this.loadInventory();
+      } else {
         this.inventoryItems = [];
         this.filteredItems = [];
         this.updatePagination();
-      } else {
-        // If we have tables but no current table selected, select first one
-        if (!this.currentTable) {
-          await this.selectTable(this.userTables[0]);
-        }
       }
     } catch (err) {
       console.error('Failed to load user tables', err);
@@ -150,7 +160,6 @@ export class Page2Component implements OnInit {
         return;
       }
 
-      // Load only items belonging to the current table and current user
       const items = await this.db.getInventoryItemsByTable(this.currentTable.id, userId);
       this.inventoryItems = items.map((item: any) => ({
         ...item,
@@ -191,10 +200,7 @@ export class Page2Component implements OnInit {
   }
 
   onQuantityChange() {
-    // Recalculate total required for current form item
-    if (this.newItem.sku_code && this.newItem.qty) {
-      // This will be calculated when materials are loaded
-    }
+    // This will be calculated when materials are loaded
   }
 
   async onFileSelected(event: Event) {
@@ -225,7 +231,7 @@ export class Page2Component implements OnInit {
   }
 
   canAddItem(): boolean {
-    return !!this.currentTable && // Must have a table selected
+    return !!this.currentTable &&
            !!this.newItem.category &&
            !!this.newItem.sku_code &&
            !!this.newItem.supplier?.trim() &&
@@ -266,7 +272,6 @@ export class Page2Component implements OnInit {
     try {
       const res = await this.db.addInventoryItem(entry);
       if (res.success && res.id) {
-        // Add to current table
         await this.addItemToTable(entry, res.id);
         
         const newItem: InventoryItem = { 
@@ -279,7 +284,6 @@ export class Page2Component implements OnInit {
         this.inventoryItems.unshift(newItem);
         this.applyFilter();
         
-        // Reset form
         this.newItem = { category: '', sku_code: '', sku_name: '', supplier: '', qty: null };
         this.availableSkus = [];
         
@@ -305,7 +309,6 @@ export class Page2Component implements OnInit {
         return;
       }
       
-      // Create requisition for the table with user_id for isolation
       const requisitionData = {
         table_id: this.currentTable.id,
         user_id: userId,
@@ -319,12 +322,10 @@ export class Page2Component implements OnInit {
       
       await this.db.createRequisition(requisitionData, []);
       
-      // Update table item count
       const newCount = (this.currentTable.item_count || 0) + 1;
       await this.db.updateTableItemCount(this.currentTable.id, newCount, userId);
       this.currentTable.item_count = newCount;
       
-      // Refresh tables list
       await this.loadUserTables();
     } catch (err) {
       console.error('Failed to add item to table', err);
@@ -343,12 +344,10 @@ export class Page2Component implements OnInit {
         const materials = await this.db.getMaterialsForSku(item.sku_code);
         item.materials = materials || [];
         item.materialCount = item.materials?.length || 0;
-        item.totalRequired = this.calculateTotalRequired(item);
       } catch (err) {
         console.error('Failed to load materials', err);
         item.materials = [];
         item.materialCount = 0;
-        item.totalRequired = 0;
         this.showToast('Failed to load materials', 'error');
       } finally {
         this.loadingMaterials[item.id] = false;
@@ -388,23 +387,12 @@ export class Page2Component implements OnInit {
     return this.filteredItems.reduce((sum, i) => sum + (i.qty || 0), 0);
   }
 
-  // Calculation Methods
-  calculateTotalRequired(item: InventoryItem): number {
-    if (!item.materials || item.materials.length === 0) return 0;
-    
-    return item.materials.reduce((total, mat) => {
-      const qtyPerBatch = mat.quantity_per_batch || 0;
-      return total + (qtyPerBatch * (item.qty || 0));
-    }, 0);
-  }
-
   calculateMaterialTotal(itemQty: number | null, qtyPerBatch: number | null): number {
     const qty = itemQty || 0;
     const batchQty = qtyPerBatch || 0;
     return batchQty * qty;
   }
 
-  // Table Management Methods
   toggleTableDropdown() {
     this.showTableDropdown = !this.showTableDropdown;
   }
@@ -418,14 +406,24 @@ export class Page2Component implements OnInit {
   }
 
   async selectTable(table: UserTable) {
+    // Verify table type
+    if (table.type !== 'inventory') {
+      this.showToast('Invalid table type', 'error');
+      return;
+    }
+
     this.currentTable = table;
     this.showTableDropdown = false;
     
-    // Clear search/filters when switching tables
+    // Save selection with user-specific key
+    const userId = this.auth.getUserId();
+    if (userId) {
+      localStorage.setItem(`lastSelectedInventoryTable_${userId}`, table.id);
+    }
+    
     this.searchQuery = '';
     this.filterCategory = '';
     
-    // Load items for this table (only current user's data)
     await this.loadInventory();
     this.showToast(`Switched to table: ${table.name}`, 'info');
   }
@@ -444,12 +442,11 @@ export class Page2Component implements OnInit {
       const tableData = {
         user_id: userId,
         name: tableName.trim(),
-        item_count: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        item_count: 0
       };
 
-      const result = await this.db.createUserTable(tableData);
+      // Create table with type 'inventory'
+      const result = await this.db.createUserTable(tableData, 'inventory');
       if (result.success && result.tableId) {
         await this.loadUserTables();
         this.showToast(`Table "${tableName}" created successfully`, 'success');
@@ -463,6 +460,12 @@ export class Page2Component implements OnInit {
   }
 
   async renameTable(table: UserTable) {
+    // Verify table type
+    if (table.type !== 'inventory') {
+      this.showToast('Invalid table type', 'error');
+      return;
+    }
+
     const newName = prompt('Enter new table name:', table.name);
     if (!newName?.trim() || newName === table.name) return;
 
@@ -488,6 +491,12 @@ export class Page2Component implements OnInit {
   }
 
   async deleteTable(table: UserTable) {
+    // Verify table type
+    if (table.type !== 'inventory') {
+      this.showToast('Invalid table type', 'error');
+      return;
+    }
+
     if (!confirm(`Are you sure you want to delete table "${table.name}"? This will also delete all items in this table. This action cannot be undone.`)) {
       return;
     }
@@ -501,10 +510,8 @@ export class Page2Component implements OnInit {
 
       const success = await this.db.deleteTable(table.id, userId);
       if (success) {
-        // Remove from local array
         this.userTables = this.userTables.filter(t => t.id !== table.id);
         
-        // If we're deleting the current table, select another or set to null
         if (this.currentTable?.id === table.id) {
           if (this.userTables.length > 0) {
             await this.selectTable(this.userTables[0]);
@@ -526,7 +533,7 @@ export class Page2Component implements OnInit {
     }
   }
 
-  // Export Methods
+  // Updated Export Method
   async exportData() {
     if (!this.currentTable) {
       this.showToast('No table selected', 'info');
@@ -539,27 +546,178 @@ export class Page2Component implements OnInit {
     }
 
     try {
-      const fileName = `${this.currentTable.name.replace(/\s+/g, '_')}_inventory_${new Date().toISOString().split('T')[0]}.csv`;
+      this.showToast('Preparing export with raw materials...', 'info');
       
-      // Create CSV content
-      const headers = ['SKU Code', 'SKU Name', 'Category', 'Quantity', 'Supplier', 'Total Required', 'Materials Count'];
-      const rows = this.filteredItems.map(item => [
-        item.sku_code,
-        item.sku_name || item.sku_code,
-        item.category,
-        item.qty.toString(),
-        item.supplier || '',
-        this.calculateTotalRequired(item).toString(),
-        (item.materialCount || 0).toString()
-      ]);
+      const fileName = `${this.currentTable.name.replace(/\s+/g, '_')}_inventory_with_materials_${new Date().toISOString().split('T')[0]}.xlsx`;
+      
+      // Create a new workbook
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'Inventory Management System';
+      workbook.lastModifiedBy = 'Inventory Management System';
+      workbook.created = new Date();
+      workbook.modified = new Date();
+      
+      // Create worksheet
+      const worksheet = workbook.addWorksheet('Inventory with Materials', {
+        properties: {
+          defaultColWidth: 15,
+          showGridLines: true
+        }
+      });
 
-      const csvContent = [
-        headers.join(','),
-        ...rows.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','))
-      ].join('\n');
+      // Title
+      worksheet.mergeCells('A1:J1');
+      const titleRow = worksheet.getRow(1);
+      titleRow.getCell(1).value = `INVENTORY WITH RAW MATERIALS - ${this.currentTable.name}`;
+      titleRow.getCell(1).font = { name: 'Arial', size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
+      titleRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
+      titleRow.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
+      titleRow.height = 30;
 
+      // Generation info
+      worksheet.mergeCells('A2:J2');
+      const infoRow = worksheet.getRow(2);
+      infoRow.getCell(1).value = `Generated on: ${new Date().toLocaleString()} | Total Items: ${this.filteredItems.length}`;
+      infoRow.getCell(1).font = { name: 'Arial', size: 11, italic: true };
+      infoRow.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
+      infoRow.height = 25;
+
+      // Headers
+      const headers = [
+        'SKU Code',
+        'Item Name',
+        'Category',
+        'Qty',
+        'Supplier',
+        'Materials',
+        'Qty/Batch',
+        'Unit',
+        'Type',
+        'Total'
+      ];
+      
+      const headerRow = worksheet.addRow(headers);
+      headerRow.eachCell((cell) => {
+        cell.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2980B9' } };
+        cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      });
+      headerRow.height = 30;
+
+      // Add data rows with materials
+      for (const item of this.filteredItems) {
+        // Load materials if not already loaded
+        if (!item.materials) {
+          try {
+            const materials = await this.db.getMaterialsForSku(item.sku_code);
+            item.materials = materials || [];
+            item.materialCount = item.materials?.length || 0;
+          } catch (err) {
+            console.error('Failed to load materials for export', err);
+            item.materials = [];
+          }
+        }
+
+        const materials = item.materials || [];
+
+        if (materials.length === 0) {
+          // SKU with no materials - single row
+          const row = worksheet.addRow([
+            item.sku_code,
+            item.sku_name || item.sku_code,
+            item.category,
+            item.qty,
+            item.supplier || '',
+            'No materials',
+            '',
+            '',
+            '',
+            ''
+          ]);
+          styleDataRow(row);
+          row.getCell(4).numFmt = '#,##0'; // Quantity
+        } else {
+          // SKU with materials - multiple rows
+          for (let i = 0; i < materials.length; i++) {
+            const mat = materials[i];
+            const row = worksheet.addRow([
+              i === 0 ? item.sku_code : '', // Only show SKU on first row of the group
+              i === 0 ? (item.sku_name || item.sku_code) : '',
+              i === 0 ? item.category : '',
+              i === 0 ? item.qty : '',
+              i === 0 ? (item.supplier || '') : '',
+              mat.raw_material || '',
+              mat.quantity_per_batch || '',
+              mat.unit || '',
+              mat.type || '',
+              this.calculateMaterialTotal(item.qty, mat.quantity_per_batch)
+            ]);
+            styleDataRow(row);
+            
+            // Format number cells
+            if (i === 0) {
+              row.getCell(4).numFmt = '#,##0'; // Quantity
+            }
+            row.getCell(7).numFmt = '#,##0.00'; // Qty per batch
+            row.getCell(10).numFmt = '#,##0.00'; // Total
+          }
+        }
+        
+        // Add empty row between SKUs for better readability
+        worksheet.addRow([]);
+      }
+
+      // Helper function for styling data rows
+      function styleDataRow(row: any) {
+        row.eachCell((cell: any) => {
+          cell.font = { name: 'Arial', size: 10 };
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFBDC3C7' } },
+            left: { style: 'thin', color: { argb: 'FFBDC3C7' } },
+            bottom: { style: 'thin', color: { argb: 'FFBDC3C7' } },
+            right: { style: 'thin', color: { argb: 'FFBDC3C7' } }
+          };
+        });
+        
+        // Center align certain columns
+        [4, 7, 8, 9, 10].forEach(colIndex => {
+          const cell = row.getCell(colIndex);
+          if (cell.value) {
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          }
+        });
+        
+        // Left align text columns
+        [1, 2, 3, 5, 6].forEach(colIndex => {
+          const cell = row.getCell(colIndex);
+          if (cell.value) {
+            cell.alignment = { vertical: 'middle', horizontal: 'left' };
+          }
+        });
+      }
+
+      // Auto-fit columns
+      worksheet.columns.forEach((column, index) => {
+        const widths = [18, 25, 15, 12, 20, 30, 15, 10, 15, 15];
+        column.width = widths[index] || 15;
+      });
+
+      // Freeze header row
+      worksheet.views = [
+        { state: 'frozen', xSplit: 0, ySplit: 3, activeCell: 'A4' }
+      ];
+
+      // Generate Excel file
+      const buffer = await workbook.xlsx.writeBuffer();
+      
       // Create blob and download
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       
@@ -571,14 +729,17 @@ export class Page2Component implements OnInit {
       link.click();
       document.body.removeChild(link);
       
-      this.showToast(`Exported ${this.filteredItems.length} items from "${this.currentTable.name}" successfully`, 'success');
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 100);
+      
+      this.showToast(`Exported ${this.filteredItems.length} items with raw materials successfully`, 'success');
     } catch (err) {
       console.error('Export failed', err);
-      this.showToast('Error exporting data', 'error');
+      this.showToast('Error exporting data: ' + (err instanceof Error ? err.message : 'Unknown error'), 'error');
     }
   }
 
-  // Snackbar Methods
   showToast(message: string, type: 'success' | 'error' | 'info' = 'info') {
     this.snackbarMessage = message;
     this.snackbarType = type;
@@ -601,7 +762,6 @@ export class Page2Component implements OnInit {
     }
   }
 
-  // Pagination methods
   updatePagination() {
     this.totalPages = Math.max(1, Math.ceil(this.filteredItems.length / this.pageSize));
     this.paginatedItems = this.filteredItems.slice(
@@ -629,55 +789,40 @@ export class Page2Component implements OnInit {
     this.updatePagination();
   }
 
-  /**
-   * Generate page numbers for pagination display
-   * Shows: 1, 2, ..., current-1, current, current+1, ..., last-1, last
-   * With ellipsis (...) for gaps
-   */
   getPageNumbers(): number[] {
     const pages: number[] = [];
     const total = this.totalPages;
     const current = this.currentPage;
-    const delta = 2; // Number of pages to show on each side of current page
+    const delta = 2;
     
     if (total <= 7) {
-      // Show all pages if total is 7 or less
       for (let i = 1; i <= total; i++) {
         pages.push(i);
       }
     } else {
-      // Always show first page
       pages.push(1);
       
-      // Calculate start and end of page range around current page
       let start = Math.max(2, current - delta);
       let end = Math.min(total - 1, current + delta);
       
-      // Add ellipsis before start if needed
       if (start > 2) {
-        pages.push(-1); // -1 represents ellipsis
+        pages.push(-1);
       }
       
-      // Add page numbers in range
       for (let i = start; i <= end; i++) {
         pages.push(i);
       }
       
-      // Add ellipsis after end if needed
       if (end < total - 1) {
-        pages.push(-1); // -1 represents ellipsis
+        pages.push(-1);
       }
       
-      // Always show last page
       pages.push(total);
     }
     
     return pages;
   }
 
-  /**
-   * Navigate to specific page
-   */
   goToPage(page: number) {
     if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
       this.currentPage = page;
@@ -685,7 +830,6 @@ export class Page2Component implements OnInit {
     }
   }
 
-  // Helper methods
   getTypeClass(type: string): string {
     if (!type) return '';
     const typeMap: { [key: string]: string } = {
@@ -721,16 +865,13 @@ export class Page2Component implements OnInit {
         const success = await this.db.deleteInventoryItem(item.id, userId, this.currentTable.id);
         
         if (success) {
-          // Remove from local arrays
           this.inventoryItems = this.inventoryItems.filter(i => i.id !== item.id);
           this.applyFilter();
           
-          // Update table item count
           const newCount = Math.max(0, (this.currentTable.item_count || 0) - 1);
           await this.db.updateTableItemCount(this.currentTable.id, newCount, userId);
           this.currentTable.item_count = newCount;
           
-          // Refresh tables list
           await this.loadUserTables();
           
           this.showToast('Item deleted successfully', 'success');

@@ -57,7 +57,7 @@
       </div>
     </nav>
     <div class="sidebar-footer">
-      <a routerLink="/login" class="nav-item nav-item-footer" (click)="logout()">
+      <a href="javascript:void(0)" class="nav-item nav-item-footer" (click)="confirmLogoutFromSidebar()">
         <span class="nav-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12h-8"/>
@@ -120,8 +120,8 @@
             <span class="user-role" *ngIf="userRole">({{ userRole }})</span>
           </div>
 
-          <!-- Settings dropdown container - always visible but only shows gear for admin -->
-          <div class="settings-container">
+          <!-- Settings container with relative positioning -->
+          <div class="settings-container" #settingsContainer>
             <!-- Gear icon - only visible for admin users -->
             <button 
               *ngIf="isAdmin" 
@@ -138,13 +138,13 @@
             </button>
 
             <!-- Settings Dropdown Menu -->
-            <div class="settings-dropdown" *ngIf="showSettings">
+            <div class="settings-dropdown" *ngIf="showSettings" (click)="$event.stopPropagation()">
               <button class="dropdown-item" (click)="openCreateUserModal()">
                 <span class="icon">👤</span>
                 Create User
               </button>
               <div class="dropdown-divider"></div>
-              <button class="dropdown-item" (click)="logout()">
+              <button class="dropdown-item" (click)="confirmLogoutFromHeader()">
                 <span class="icon">🚪</span>
                 Sign Out
               </button>
@@ -211,5 +211,24 @@
         </button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Logout Confirmation Modal -->
+<div class="modal-overlay" *ngIf="showLogoutConfirm" (click)="cancelLogout()">
+  <div class="modal modal-confirm" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Confirm Sign Out</h3>
+      <button class="modal-close" (click)="cancelLogout()">×</button>
+    </div>
+    
+    <div class="modal-body">
+      <p>Are you sure you want to sign out?</p>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn" (click)="cancelLogout()">Cancel</button>
+      <button type="button" class="btn primary danger" (click)="logout()">Sign Out</button>
+    </div>
   </div>
 </div>

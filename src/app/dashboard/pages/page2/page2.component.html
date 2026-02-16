@@ -12,7 +12,7 @@
       <span class="subtitle">Track inventory items and material requirements</span>
     </div>
     <div class="header-actions">
-      <!-- Tables Dropdown -->
+      <!-- Tables Dropdown - Shows current table name when selected -->
       <div class="dropdown" [class.open]="showTableDropdown">
         <button class="btn btn-outline" (click)="toggleTableDropdown()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -20,7 +20,8 @@
             <line x1="3" y1="9" x2="21" y2="9"/>
             <line x1="9" y1="21" x2="9" y2="9"/>
           </svg>
-          Manage Tables
+          <!-- Show current table name if selected, otherwise show "Manage Tables" -->
+          {{ currentTable ? currentTable.name : 'Manage Tables' }}
         </button>
         
         <div class="dropdown-menu" *ngIf="showTableDropdown">
@@ -262,7 +263,6 @@
             <th>Category</th>
             <th>Qty</th>
             <th>Supplier</th>
-            <th>Total Req</th>
             <th>Materials</th>
             <th></th>
           </tr>
@@ -282,7 +282,6 @@
               <td><span class="badge">{{ item.category }}</span></td>
               <td class="number">{{ item.qty | number }}</td>
               <td class="limit">{{ item.supplier || '—' }}</td>
-              <td class="number primary">{{ calculateTotalRequired(item) | number:'1.2-2' }}</td>
               <td>
                 <span class="material-count" [class.has]="(item.materialCount ?? 0) > 0">
                   {{ item.materialCount ?? '0' }}
@@ -302,7 +301,7 @@
             
             <!-- Expanded Row - Materials -->
             <tr class="expanded-row" *ngIf="expandedRows[item.id]">
-              <td colspan="9">
+              <td colspan="8">
                 <div class="expanded-content">
                   <div *ngIf="loadingMaterials[item.id]" class="loading-state">
                     <div class="spinner-small"></div>
@@ -311,11 +310,7 @@
                   
                   <div *ngIf="!loadingMaterials[item.id] && item.materials?.length">
                     <div class="expanded-header">
-                      <h4>Raw Materials</h4>
-                      <div class="summary">
-                        <span>{{ item.materials?.length || 0 }} items</span>
-                        <span>{{ calculateTotalRequired(item) | number:'1.2-2' }} total</span>
-                      </div>
+                      <h4>Raw Materials for {{ item.sku_code }}</h4>
                     </div>
                     
                     <div class="materials-grid">
@@ -356,7 +351,7 @@
           </ng-container>
           
           <tr *ngIf="filteredItems.length === 0">
-            <td colspan="9" class="empty-table">
+            <td colspan="8" class="empty-table">
               <div>
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <rect x="3" y="3" width="18" height="18" rx="2"/>

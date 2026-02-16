@@ -1,4 +1,4 @@
-import { Component, signal, OnInit } from '@angular/core';
+import { Component, signal, OnInit, ViewChild, ElementRef, HostListener } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ThemeService } from '../core/services/theme.service';
@@ -17,6 +17,8 @@ import { serverTimestamp } from 'firebase/firestore';
   styleUrl: './dashboard.component.css',
 })
 export class DashboardComponent implements OnInit {
+  @ViewChild('settingsContainer') settingsContainer!: ElementRef;
+  
   collapsed = signal(false);
 
   navItems = [
@@ -31,6 +33,8 @@ export class DashboardComponent implements OnInit {
   // Settings & modal state
   showSettings = false;
   showCreateUserModal = false;
+  showLogoutConfirm = false;
+  logoutSource: 'header' | 'sidebar' | null = null;
 
   // Create user form
   createUserForm: any;
@@ -59,6 +63,14 @@ export class DashboardComponent implements OnInit {
       password: ['', [Validators.required, Validators.minLength(6)]],
       role: ['user', Validators.required],
     });
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    if (this.showSettings && this.settingsContainer && 
+        !this.settingsContainer.nativeElement.contains(event.target)) {
+      this.showSettings = false;
+    }
   }
 
   async ngOnInit() {
@@ -157,6 +169,22 @@ export class DashboardComponent implements OnInit {
     this.showCreateUserModal = false;
   }
 
+  confirmLogoutFromHeader() {
+    this.showSettings = false;
+    this.logoutSource = 'header';
+    this.showLogoutConfirm = true;
+  }
+
+  confirmLogoutFromSidebar() {
+    this.logoutSource = 'sidebar';
+    this.showLogoutConfirm = true;
+  }
+
+  cancelLogout() {
+    this.showLogoutConfirm = false;
+    this.logoutSource = null;
+  }
+
   async createUser() {
     if (this.createUserForm.invalid) {
       this.createUserForm.markAllAsTouched();
@@ -208,9 +236,10 @@ export class DashboardComponent implements OnInit {
     try {
       await this.authService.signOut();
       this.router.navigate(['/login']);
+      this.showLogoutConfirm = false;
+      this.logoutSource = null;
     } catch (err) {
       console.error('Logout failed', err);
     }
   }
-
 }

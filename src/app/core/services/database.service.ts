@@ -1,6 +1,6 @@
 // src/core/services/database.service.ts
 import { Injectable } from '@angular/core';
-import { Firestore, collection, addDoc, getDocs, query, where, doc, getDoc, updateDoc, deleteDoc, writeBatch, DocumentData, DocumentReference, QuerySnapshot, DocumentSnapshot } from '@angular/fire/firestore';
+import { Firestore, collection, addDoc, getDocs, query, where, doc, getDoc, updateDoc, deleteDoc, writeBatch } from '@angular/fire/firestore';
 import { AuthService } from './auth.service';
 import { firstValueFrom } from 'rxjs';
 import { User } from '../models/database.model';
@@ -36,6 +36,16 @@ interface InventoryItem {
   user_id: string;
   created_at?: Date;
   updated_at?: Date;
+}
+
+interface Table {
+  id: string;
+  name: string;
+  user_id: string;
+  type: 'inventory' | 'requisition';
+  item_count?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -294,9 +304,13 @@ export class DatabaseService {
   }
 
   // ────────────────────────────────────────────────
-  //  Tables + Requisitions (with user isolation)
+  //  Tables + Requisitions (with user isolation and type)
   // ────────────────────────────────────────────────
 
+  /**
+   * Get all tables for a user (legacy method - returns all tables regardless of type)
+   * @deprecated Use getUserTablesByType instead
+   */
   async getUserTables(userId: string): Promise<any[]> {
     try {
       if (!userId) return [];
@@ -313,10 +327,38 @@ export class DatabaseService {
     }
   }
 
-  async createUserTable(data: any): Promise<{ success: boolean; tableId?: string }> {
+  /**
+   * Get tables by type for a user
+   * @param userId - The user ID
+   * @param type - The table type ('inventory' or 'requisition')
+   */
+  async getUserTablesByType(userId: string, type: 'inventory' | 'requisition'): Promise<any[]> {
+    try {
+      if (!userId) return [];
+      
+      const q = query(
+        collection(this.firestore, 'tables'),
+        where('user_id', '==', userId),
+        where('type', '==', type)
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (err) {
+      console.error('getUserTablesByType failed', err);
+      return [];
+    }
+  }
+
+  /**
+   * Create a new user table with type
+   * @param data - Table data (name, user_id)
+   * @param type - Table type ('inventory' or 'requisition')
+   */
+  async createUserTable(data: any, type: 'inventory' | 'requisition'): Promise<{ success: boolean; tableId?: string }> {
     try {
       const docRef = await addDoc(collection(this.firestore, 'tables'), {
         ...data,
+        type,  // Add the type field
         item_count: 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -529,6 +571,35 @@ export class DatabaseService {
       return true;
     } catch (err) {
       console.error('updateTableItemCount failed', err);
+      return false;
+    }
+  }
+
+  async updateRequisition(id: string, data: any, userId: string, tableId: string): Promise<boolean> {
+    try {
+      // Verify ownership
+      const reqRef = doc(this.firestore, 'requisitions', id);
+      const reqDoc = await getDoc(reqRef);
+      
+      if (!reqDoc.exists()) return false;
+      
+      const reqData = reqDoc.data();
+      if (reqData['user_id'] !== userId || reqData['table_id'] !== tableId) {
+        console.error('Unauthorized update attempt');
+        return false;
+      }
+      
+      // Don't update reqNumber for existing requisitions
+      const { reqNumber, ...updateData } = data;
+      
+      await updateDoc(reqRef, {
+        ...updateData,
+        updated_at: new Date().toISOString()
+      });
+      
+      return true;
+    } catch (err) {
+      console.error('updateRequisition failed', err);
       return false;
     }
   }
