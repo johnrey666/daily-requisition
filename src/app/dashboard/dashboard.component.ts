@@ -10,6 +10,13 @@ import { Observable, firstValueFrom } from 'rxjs';
 import { Firestore, doc, getDoc, setDoc } from '@angular/fire/firestore';
 import { serverTimestamp } from 'firebase/firestore';
 
+interface NavItem {
+  label: string;
+  route: string;
+  icon: string;
+  roles: string[];
+}
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -22,14 +29,16 @@ export class DashboardComponent implements OnInit {
   
   collapsed = signal(false);
 
-  navItems = [
-    { label: 'Dashboard', route: '/dashboard', icon: 'dashboard' },
-    { label: 'Store', route: '/dashboard/store', icon: 'store' },
-    { label: 'Production', route: '/dashboard/production', icon: 'factory' },
-    { label: 'Procurement', route: '/dashboard/procurement', icon: 'document' },
-    { label: 'Users', route: '/dashboard/users', icon: 'users' },
-    { label: 'Usage Report', route: '/dashboard/usage-report', icon: 'line-chart' },
-  ] as const;
+  navItems: NavItem[] = [
+    { label: 'Dashboard', route: '/dashboard', icon: 'dashboard', roles: ['user', 'store', 'production', 'procurement', 'admin'] },
+    { label: 'Store', route: '/dashboard/store', icon: 'store', roles: ['store', 'admin'] },
+    { label: 'Production', route: '/dashboard/production', icon: 'factory', roles: ['production', 'admin'] },
+    { label: 'Procurement', route: '/dashboard/procurement', icon: 'document', roles: ['procurement', 'admin'] },
+    { label: 'Users', route: '/dashboard/users', icon: 'users', roles: ['admin'] },
+    { label: 'Usage Report', route: '/dashboard/usage-report', icon: 'line-chart', roles: ['store', 'production', 'procurement', 'admin'] },
+  ];
+
+  filteredNavItems: NavItem[] = [];
 
   user$: Observable<any>;
 
@@ -87,6 +96,7 @@ export class DashboardComponent implements OnInit {
       } else {
         this.userRole = null;
         this.isAdmin = false;
+        this.filteredNavItems = [];
       }
     });
   }
@@ -97,6 +107,7 @@ export class DashboardComponent implements OnInit {
       if (!userId) {
         this.userRole = null;
         this.isAdmin = false;
+        this.filteredNavItems = [];
         return;
       }
 
@@ -108,6 +119,9 @@ export class DashboardComponent implements OnInit {
         this.userRole = data['role'] || 'user';
         this.isAdmin = this.userRole === 'admin';
         console.log('User role loaded:', this.userRole, 'isAdmin:', this.isAdmin);
+        
+        // Filter nav items based on user role
+        this.filterNavItems();
       } else {
         // Create user document if it doesn't exist
         const currentUser = await firstValueFrom(this.user$);
@@ -121,13 +135,30 @@ export class DashboardComponent implements OnInit {
           });
           this.userRole = 'user';
           this.isAdmin = false;
+          this.filterNavItems();
         }
       }
     } catch (err) {
       console.error('Failed to load user role', err);
       this.userRole = null;
       this.isAdmin = false;
+      this.filteredNavItems = [];
     }
+  }
+
+  private filterNavItems() {
+    if (!this.userRole) {
+      this.filteredNavItems = [];
+      return;
+    }
+
+    this.filteredNavItems = this.navItems.filter(item => 
+      item.roles.includes(this.userRole as string)
+    );
+  }
+
+  shouldShowNavItem(item: NavItem): boolean {
+    return this.filteredNavItems.includes(item);
   }
 
   getUserInitials(user: any): string {

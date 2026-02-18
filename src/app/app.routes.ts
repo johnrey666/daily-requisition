@@ -14,7 +14,7 @@ export const routes: Routes = [
         path: '', 
         loadComponent: () => import('./dashboard/pages/page1/page1.component').then(m => m.Page1Component),
         canActivate: [RoleGuard],
-        data: { roles: ['user'] }
+        data: { roles: ['user', 'store', 'production', 'procurement', 'admin'] }
       },
       { 
         path: 'store', 
@@ -44,7 +44,7 @@ export const routes: Routes = [
         path: 'usage-report', 
         loadComponent: () => import('./dashboard/pages/page4/page4.component').then(m => m.Page4Component),
         canActivate: [RoleGuard],
-        data: { roles: ['production', 'admin'] }
+        data: { roles: ['store', 'production', 'procurement', 'admin'] }
       },
       // Keep old routes for backward compatibility
       { 
