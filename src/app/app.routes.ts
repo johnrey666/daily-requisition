@@ -20,19 +20,25 @@ export const routes: Routes = [
         path: 'store', 
         loadComponent: () => import('./dashboard/pages/page2/page2.component').then(m => m.Page2Component),
         canActivate: [RoleGuard],
-        data: { roles: ['store', 'admin'] }
+        data: { roles: ['user', 'store', 'production', 'procurement', 'admin'] }
       },
       { 
         path: 'production', 
         loadComponent: () => import('./dashboard/pages/page2/page2.component').then(m => m.Page2Component),
         canActivate: [RoleGuard],
-        data: { roles: ['production', 'admin'] }
+        data: { roles: ['user', 'store', 'production', 'procurement', 'admin'] }
       },
       { 
         path: 'procurement', 
         loadComponent: () => import('./dashboard/pages/page3/page3.component').then(m => m.Page3Component),
         canActivate: [RoleGuard],
-        data: { roles: ['procurement', 'admin'] }
+        data: { roles: ['user', 'store', 'production', 'procurement', 'admin'] }
+      },
+      { 
+        path: 'usage-report', 
+        loadComponent: () => import('./dashboard/pages/page4/page4.component').then(m => m.Page4Component),
+        canActivate: [RoleGuard],
+        data: { roles: ['user', 'store', 'production', 'procurement', 'admin'] }
       },
       { 
         path: 'users', 
@@ -40,24 +46,18 @@ export const routes: Routes = [
         canActivate: [RoleGuard],
         data: { roles: ['admin'] }
       },
-      { 
-        path: 'usage-report', 
-        loadComponent: () => import('./dashboard/pages/page4/page4.component').then(m => m.Page4Component),
-        canActivate: [RoleGuard],
-        data: { roles: ['store', 'production', 'procurement', 'admin'] }
-      },
       // Keep old routes for backward compatibility
       { 
         path: 'daily-production', 
         loadComponent: () => import('./dashboard/pages/page2/page2.component').then(m => m.Page2Component),
         canActivate: [RoleGuard],
-        data: { roles: ['store', 'production', 'admin'] }
+        data: { roles: ['user', 'store', 'production', 'procurement', 'admin'] }
       },
       { 
         path: 'material-requisition', 
         loadComponent: () => import('./dashboard/pages/page3/page3.component').then(m => m.Page3Component),
         canActivate: [RoleGuard],
-        data: { roles: ['procurement', 'admin', 'user'] }
+        data: { roles: ['user', 'store', 'production', 'procurement', 'admin'] }
       },
     ],
   },

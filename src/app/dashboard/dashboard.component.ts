@@ -31,11 +31,11 @@ export class DashboardComponent implements OnInit {
 
   navItems: NavItem[] = [
     { label: 'Dashboard', route: '/dashboard', icon: 'dashboard', roles: ['user', 'store', 'production', 'procurement', 'admin'] },
-    { label: 'Store', route: '/dashboard/store', icon: 'store', roles: ['store', 'admin'] },
-    { label: 'Production', route: '/dashboard/production', icon: 'factory', roles: ['production', 'admin'] },
-    { label: 'Procurement', route: '/dashboard/procurement', icon: 'document', roles: ['procurement', 'admin'] },
+    { label: 'Store', route: '/dashboard/store', icon: 'store', roles: ['user', 'store', 'production', 'procurement', 'admin'] },
+    { label: 'Production', route: '/dashboard/production', icon: 'factory', roles: ['user', 'store', 'production', 'procurement', 'admin'] },
+    { label: 'Procurement', route: '/dashboard/procurement', icon: 'document', roles: ['user', 'store', 'production', 'procurement', 'admin'] },
+    { label: 'Usage Report', route: '/dashboard/usage-report', icon: 'line-chart', roles: ['user', 'store', 'production', 'procurement', 'admin'] },
     { label: 'Users', route: '/dashboard/users', icon: 'users', roles: ['admin'] },
-    { label: 'Usage Report', route: '/dashboard/usage-report', icon: 'line-chart', roles: ['store', 'production', 'procurement', 'admin'] },
   ];
 
   filteredNavItems: NavItem[] = [];

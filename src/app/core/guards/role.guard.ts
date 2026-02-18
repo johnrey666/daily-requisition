@@ -36,32 +36,15 @@ export class RoleGuard implements CanActivate {
         return true;
       }
 
-      // If user doesn't have required role, redirect to their default dashboard
-      this.redirectBasedOnRole(userRole);
+      // If user doesn't have required role, redirect to dashboard (not their specific page)
+      // This prevents the redirect loop
+      console.log('User role', userRole, 'not allowed for route:', route.url);
+      this.router.navigate(['/dashboard']);
       return false;
     } catch (err) {
       console.error('Role guard error:', err);
-      this.router.navigate(['/']);
+      this.router.navigate(['/dashboard']);
       return false;
-    }
-  }
-
-  private redirectBasedOnRole(role: string): void {
-    switch(role) {
-      case 'store':
-        this.router.navigate(['/dashboard/store']);
-        break;
-      case 'production':
-        this.router.navigate(['/dashboard/production']);
-        break;
-      case 'procurement':
-        this.router.navigate(['/dashboard/procurement']);
-        break;
-      case 'admin':
-        this.router.navigate(['/dashboard/users']);
-        break;
-      default:
-        this.router.navigate(['/dashboard']);
     }
   }
 }
