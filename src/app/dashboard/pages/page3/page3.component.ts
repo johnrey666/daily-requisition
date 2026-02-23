@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DatabaseService } from '../../../core/services/database.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { Firestore, doc, getDoc, collection, query, where, getDocs } from '@angular/fire/firestore';
+import { Firestore, doc, collection, query, where, getDocs } from '@angular/fire/firestore';
+import { getDoc } from 'firebase/firestore';
 import { Router } from '@angular/router';
 
 interface Requisition {
@@ -76,7 +77,11 @@ export class Page3Component implements OnInit {
   showScheduleModal = false;
   showApproveModal = false;
   showRejectModal = false;
-  showAllPending = false; // For procurement view
+  showDeliveryModal = false;
+  showMissingNotesModal = false;
+  // View modes: store/user see their tables; production sees store submissions; procurement sees for-delivery
+  viewMode: 'my_tables' | 'store_submissions' | 'for_delivery' = 'my_tables';
+  showAllPending = false; // Legacy procurement view
   submitted = false;
   isLoading = false;
   isSubmitting = false;
@@ -105,6 +110,7 @@ export class Page3Component implements OnInit {
   // Approval Data
   approvalNotes: string = '';
   rejectionReason: string = '';
+  missingMaterialsNotes: string = '';
 
   // Editing
   editingRequisition: Requisition | null = null;
@@ -136,6 +142,9 @@ export class Page3Component implements OnInit {
   // User Role
   userRole: string = '';
   userId: string = '';
+
+  // Table names for cross-user views (production/procurement)
+  tableNameMap: { [tableId: string]: string } = {};
 
   Math = Math;
 
@@ -199,12 +208,24 @@ export class Page3Component implements OnInit {
     }
 
     try {
-      console.log('Loading tables for user:', this.userId);
-      // Only load requisition type tables
+      // Production: only sees store submissions (no own tables)
+      if (this.userRole === 'production') {
+        this.viewMode = 'store_submissions';
+        await this.loadStoreSubmissions();
+        return;
+      }
+
+      // Procurement: can toggle for_delivery view
+      if (this.userRole === 'procurement' || this.userRole === 'admin') {
+        this.viewMode = 'for_delivery';
+        await this.loadForDelivery();
+        return;
+      }
+
+      // Store/User: load their tables
+      this.viewMode = 'my_tables';
       this.tables = await this.db.getUserTablesByType(this.userId, 'requisition');
-      console.log('Loaded tables:', this.tables);
       
-      // Load last selected table from localStorage or use first table
       const lastTableId = localStorage.getItem(`lastSelectedRequisitionTable_${this.userId}`);
       if (lastTableId && this.tables.some(t => t.id === lastTableId)) {
         this.selectedTableId = lastTableId;
@@ -218,6 +239,44 @@ export class Page3Component implements OnInit {
     } catch (err) {
       console.error('Failed to load tables:', err);
       this.showToast('Failed to load tables', 'error');
+    }
+  }
+
+  async loadStoreSubmissions() {
+    this.isLoading = true;
+    try {
+      this.requisitions = await this.db.getAllRequisitionsByStatus('Submitted');
+      await this.loadTableNamesForRequisitions(this.requisitions);
+      this.applyFilter();
+    } catch (err) {
+      console.error('Failed to load store submissions', err);
+      this.showToast('Failed to load store submissions', 'error');
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  async loadForDelivery() {
+    this.isLoading = true;
+    try {
+      this.requisitions = await this.db.getAllRequisitionsByStatus('Production_Accepted');
+      await this.loadTableNamesForRequisitions(this.requisitions);
+      this.applyFilter();
+    } catch (err) {
+      console.error('Failed to load for delivery', err);
+      this.showToast('Failed to load for delivery', 'error');
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  private async loadTableNamesForRequisitions(reqs: Requisition[]) {
+    const tableIds = [...new Set(reqs.map(r => r.table_id).filter(Boolean))] as string[];
+    for (const tid of tableIds) {
+      if (!this.tableNameMap[tid]) {
+        const t = await this.db.getTableById(tid);
+        this.tableNameMap[tid] = t?.name || 'Untitled';
+      }
     }
   }
 
@@ -241,56 +300,6 @@ export class Page3Component implements OnInit {
     
     // Load requisitions for selected table
     await this.loadRequisitions();
-  }
-
-  // Procurement view toggle
-  async toggleViewAllPending() {
-    this.showAllPending = !this.showAllPending;
-    
-    if (this.showAllPending) {
-      await this.loadAllPendingRequisitions();
-      this.showToast('Showing all pending requisitions', 'info');
-    } else {
-      await this.onTableChange();
-      this.showToast(`Showing ${this.selectedTable?.name} requisitions`, 'info');
-    }
-  }
-
-  // Load all pending requisitions for procurement
-  async loadAllPendingRequisitions() {
-    if (this.userRole !== 'procurement' && this.userRole !== 'admin') {
-      return; // Only procurement and admin can see all
-    }
-
-    this.isLoading = true;
-    try {
-      // Get all tables first
-      const allTables = await this.db.getUserTables(this.userId);
-      
-      let allRequisitions: Requisition[] = [];
-      
-      for (const table of allTables) {
-        // Get pending and submitted requisitions
-        const pendingReqs = await this.db.getRequisitionsByStatus(table.id, this.userId, 'Pending');
-        const submittedReqs = await this.db.getRequisitionsByStatus(table.id, this.userId, 'Submitted');
-        allRequisitions = [...allRequisitions, ...pendingReqs, ...submittedReqs];
-      }
-      
-      // Sort by date (newest first)
-      allRequisitions.sort((a, b) => {
-        return new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime();
-      });
-      
-      this.requisitions = allRequisitions;
-      console.log('All pending requisitions:', this.requisitions);
-      
-      this.applyFilter();
-    } catch (err) {
-      console.error('Failed to load all pending requisitions:', err);
-      this.showToast('Failed to load pending requisitions', 'error');
-    } finally {
-      this.isLoading = false;
-    }
   }
 
   async loadRequisitions() {
@@ -496,21 +505,21 @@ export class Page3Component implements OnInit {
     }
   }
 
-  // Submit requisition for approval (User action)
+  // Submit requisition for approval (Store/User action)
   async submitRequisition(req: Requisition) {
-    if (this.userRole !== 'user') {
-      this.showToast('Only users can submit requisitions', 'error');
+    if (this.userRole !== 'user' && this.userRole !== 'store') {
+      this.showToast('Only store/user can submit requisitions', 'error');
       return;
     }
 
-    if (!confirm(`Submit requisition ${req.reqNumber} for approval?`)) return;
+    if (!confirm(`Submit requisition ${req.reqNumber || req.id} for approval?`)) return;
 
     try {
       const success = await this.db.updateRequisitionStatus(
         req.id,
         'Submitted',
         this.userId,
-        this.selectedTableId || '',
+        req.table_id || this.selectedTableId || '',
         { submitted_at: new Date().toISOString() }
       );
 
@@ -524,6 +533,134 @@ export class Page3Component implements OnInit {
       console.error('Submit error:', err);
       this.showToast('Failed to submit requisition', 'error');
     }
+  }
+
+  // Production: Accept store/user submission
+  async acceptByProduction(req: Requisition) {
+    if (this.userRole !== 'production' && this.userRole !== 'admin') {
+      this.showToast('Only production can accept requisitions', 'error');
+      return;
+    }
+    if (!confirm(`Accept requisition ${req.reqNumber || req.id} and send to procurement?`)) return;
+
+    try {
+      const success = await this.db.updateRequisitionStatus(
+        req.id,
+        'Production_Accepted',
+        this.userId,
+        req.table_id || '',
+        {}
+      );
+      if (success) {
+        await this.loadStoreSubmissions();
+        this.showToast('Requisition accepted and sent to procurement', 'success');
+      } else {
+        this.showToast('Failed to accept requisition', 'error');
+      }
+    } catch (err) {
+      console.error('Accept error:', err);
+      this.showToast('Failed to accept requisition', 'error');
+    }
+  }
+
+  // Production: Decline store/user submission
+  openRejectModalProduction(req: Requisition) {
+    this.selectedRequisition = req;
+    this.rejectionReason = '';
+    this.showRejectModal = true;
+  }
+
+  async rejectByProduction() {
+    if (!this.selectedRequisition || !this.rejectionReason.trim()) {
+      this.showToast('Please provide a rejection reason', 'error');
+      return;
+    }
+    try {
+      const success = await this.db.updateRequisitionStatus(
+        this.selectedRequisition.id,
+        'Rejected',
+        this.userId,
+        this.selectedRequisition.table_id || '',
+        { rejected_by: this.userId, rejection_reason: this.rejectionReason }
+      );
+      if (success) {
+        await this.loadStoreSubmissions();
+        this.closeRejectModal();
+        this.showToast('Requisition declined', 'success');
+      } else {
+        this.showToast('Failed to decline requisition', 'error');
+      }
+    } catch (err) {
+      console.error('Reject error:', err);
+      this.showToast('Failed to decline requisition', 'error');
+    }
+  }
+
+  // Procurement: Mark as fully delivered
+  async markDelivered(req: Requisition) {
+    if (this.userRole !== 'procurement' && this.userRole !== 'admin') {
+      this.showToast('Only procurement can mark as delivered', 'error');
+      return;
+    }
+    if (!confirm(`Mark requisition ${req.reqNumber || req.id} as fully delivered?`)) return;
+
+    try {
+      const success = await this.db.updateRequisitionStatus(
+        req.id,
+        'Delivered',
+        this.userId,
+        req.table_id || '',
+        {}
+      );
+      if (success) {
+        await this.loadForDelivery();
+        this.showToast('Requisition marked as delivered', 'success');
+      } else {
+        this.showToast('Failed to update', 'error');
+      }
+    } catch (err) {
+      console.error('Deliver error:', err);
+      this.showToast('Failed to update', 'error');
+    }
+  }
+
+  // Procurement: Add notes for missing materials
+  openMissingNotesModal(req: Requisition) {
+    this.selectedRequisition = req;
+    this.missingMaterialsNotes = '';
+    this.showMissingNotesModal = true;
+  }
+
+  async saveMissingNotes() {
+    if (!this.selectedRequisition || !this.missingMaterialsNotes.trim()) {
+      this.showToast('Please add notes for missing materials', 'error');
+      return;
+    }
+    try {
+      const success = await this.db.updateRequisitionStatus(
+        this.selectedRequisition.id,
+        'Partially_Delivered',
+        this.userId,
+        this.selectedRequisition.table_id || '',
+        { missing_materials_notes: this.missingMaterialsNotes }
+      );
+      if (success) {
+        await this.loadForDelivery();
+        this.closeMissingNotesModal();
+        this.showToast('Notes saved - requisition marked as partially delivered', 'success');
+      } else {
+        this.showToast('Failed to save notes', 'error');
+      }
+    } catch (err) {
+      console.error('Save notes error:', err);
+      this.showToast('Failed to save notes', 'error');
+    }
+  }
+
+  closeMissingNotesModal() {
+    this.showMissingNotesModal = false;
+    this.selectedRequisition = null;
+    this.missingMaterialsNotes = '';
   }
 
   // Open schedule modal (Procurement action)
@@ -626,9 +763,10 @@ export class Page3Component implements OnInit {
     }
   }
 
-  // Open reject modal (Admin/Procurement action)
+  // Open reject modal (Production accept/decline, Admin/Procurement)
   openRejectModal(req: Requisition) {
-    if (this.userRole !== 'admin' && this.userRole !== 'procurement') {
+    const canReject = this.userRole === 'production' || this.userRole === 'admin' || this.userRole === 'procurement';
+    if (!canReject) {
       this.showToast('You do not have permission to reject requisitions', 'error');
       return;
     }
@@ -636,6 +774,15 @@ export class Page3Component implements OnInit {
     this.selectedRequisition = req;
     this.rejectionReason = '';
     this.showRejectModal = true;
+  }
+
+  // Reject modal confirm - dispatches to correct handler
+  async confirmReject() {
+    if (this.viewMode === 'store_submissions' && (this.userRole === 'production' || this.userRole === 'admin')) {
+      await this.rejectByProduction();
+    } else {
+      await this.rejectRequisition();
+    }
   }
 
   // Reject requisition (Admin/Procurement action)
@@ -1077,11 +1224,27 @@ export class Page3Component implements OnInit {
 
   // Helper methods for role-based UI
   canCreateRequisition(): boolean {
-    return this.userRole === 'user' || this.userRole === 'procurement' || this.userRole === 'admin';
+    return (this.userRole === 'user' || this.userRole === 'store') && this.viewMode === 'my_tables';
   }
 
   canSubmitRequisition(req: Requisition): boolean {
-    return this.userRole === 'user' && req.status === 'Pending' && req.user_id === this.userId;
+    return (this.userRole === 'user' || this.userRole === 'store') && req.status === 'Pending' && req.user_id === this.userId;
+  }
+
+  canAcceptByProduction(req: Requisition): boolean {
+    return (this.userRole === 'production' || this.userRole === 'admin') && req.status === 'Submitted';
+  }
+
+  canDeclineByProduction(req: Requisition): boolean {
+    return (this.userRole === 'production' || this.userRole === 'admin') && req.status === 'Submitted';
+  }
+
+  canMarkDelivered(req: Requisition): boolean {
+    return (this.userRole === 'procurement' || this.userRole === 'admin') && req.status === 'Production_Accepted';
+  }
+
+  canAddMissingNotes(req: Requisition): boolean {
+    return (this.userRole === 'procurement' || this.userRole === 'admin') && req.status === 'Production_Accepted';
   }
 
   canScheduleRequisition(req: Requisition): boolean {
@@ -1093,18 +1256,19 @@ export class Page3Component implements OnInit {
   }
 
   canRejectRequisition(req: Requisition): boolean {
-    return (this.userRole === 'admin' || this.userRole === 'procurement') && 
+    return (this.userRole === 'production' || this.userRole === 'admin') && req.status === 'Submitted' ||
+           (this.userRole === 'admin' || this.userRole === 'procurement') && 
            (req.status === 'Submitted' || req.status === 'Scheduled');
   }
 
   canEditRequisition(req: Requisition): boolean {
-    return (this.userRole === 'admin' || req.user_id === this.userId) && 
-           req.status !== 'Approved' && req.status !== 'Rejected';
+    return this.viewMode === 'my_tables' && (this.userRole === 'admin' || req.user_id === this.userId) && 
+           req.status !== 'Approved' && req.status !== 'Rejected' && req.status !== 'Delivered' && req.status !== 'Partially_Delivered';
   }
 
   canDeleteRequisition(req: Requisition): boolean {
-    return (this.userRole === 'admin' || (this.userRole === 'user' && req.user_id === this.userId)) && 
-           req.status !== 'Approved';
+    return this.viewMode === 'my_tables' && (this.userRole === 'admin' || ((this.userRole === 'user' || this.userRole === 'store') && req.user_id === this.userId)) && 
+           req.status !== 'Approved' && req.status !== 'Delivered';
   }
 
   getStatusBadgeClass(status: string): string {
@@ -1114,6 +1278,9 @@ export class Page3Component implements OnInit {
       case 'Scheduled': return 'status-scheduled';
       case 'Approved': return 'status-approved';
       case 'Rejected': return 'status-rejected';
+      case 'Production_Accepted': return 'status-scheduled';
+      case 'Delivered': return 'status-approved';
+      case 'Partially_Delivered': return 'status-pending';
       default: return 'status-pending';
     }
   }

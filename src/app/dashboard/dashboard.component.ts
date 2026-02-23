@@ -1,13 +1,14 @@
 // src/app/dashboard/dashboard.component.ts
-import { Component, signal, OnInit, ViewChild, ElementRef, HostListener } from '@angular/core';
+import { Component, signal, OnInit, ViewChild, ElementRef, HostListener, OnDestroy } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet, Router } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { ThemeService } from '../core/services/theme.service';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../core/services/auth.service';
 import { UserService } from '../core/services/user.service';
-import { Observable, firstValueFrom } from 'rxjs';
-import { Firestore, doc, getDoc, setDoc } from '@angular/fire/firestore';
+import { Observable, firstValueFrom, Subscription } from 'rxjs';
+import { Firestore, collection, getDocs, doc, setDoc, query, orderBy } from '@angular/fire/firestore';
+import { getDoc } from 'firebase/firestore';
 import { serverTimestamp } from 'firebase/firestore';
 
 interface NavItem {
@@ -17,14 +18,22 @@ interface NavItem {
   roles: string[];
 }
 
+interface User {
+  uid?: string;
+  email: string;
+  role: string;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, ReactiveFormsModule],
+  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, ReactiveFormsModule, DatePipe],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   @ViewChild('settingsContainer') settingsContainer!: ElementRef;
   
   collapsed = signal(false);
@@ -44,9 +53,15 @@ export class DashboardComponent implements OnInit {
 
   // Settings & modal state
   showSettings = false;
+  showUserListModal = false;
   showCreateUserModal = false;
   showLogoutConfirm = false;
   logoutSource: 'header' | 'sidebar' | null = null;
+
+  // User list state
+  users: User[] = [];
+  loadingUsers = false;
+  userListError: string | null = null;
 
   // Create user form
   createUserForm: any;
@@ -58,6 +73,12 @@ export class DashboardComponent implements OnInit {
   isCreating = false;
   createError: string | null = null;
   createSuccess: string | null = null;
+
+  // During user creation, auth temporarily switches to new user - ignore that to stay as admin
+  private isCreatingUser = false;
+
+  // Subscriptions
+  private userSubscription?: Subscription;
 
   constructor(
     public themeService: ThemeService,
@@ -73,7 +94,7 @@ export class DashboardComponent implements OnInit {
     this.createUserForm = this.fb.nonNullable.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]],
-      role: ['user', Validators.required],
+      role: ['store', Validators.required],
     });
   }
 
@@ -89,8 +110,9 @@ export class DashboardComponent implements OnInit {
     // Load user role immediately
     await this.loadUserRole();
     
-    // Subscribe to auth state changes
-    this.user$.subscribe(async (user) => {
+    // Subscribe to auth state changes (skip during user creation - auth temporarily switches)
+    this.userSubscription = this.user$.subscribe(async (user) => {
+      if (this.isCreatingUser) return;
       if (user?.uid) {
         await this.loadUserRole(user.uid);
       } else {
@@ -99,6 +121,13 @@ export class DashboardComponent implements OnInit {
         this.filteredNavItems = [];
       }
     });
+  }
+
+  ngOnDestroy() {
+    // Clean up subscription
+    if (this.userSubscription) {
+      this.userSubscription.unsubscribe();
+    }
   }
 
   private async loadUserRole(uid?: string) {
@@ -193,16 +222,95 @@ export class DashboardComponent implements OnInit {
     this.showSettings = !this.showSettings;
   }
 
+  // Open user list modal first
+  openUserListModal() {
+    this.showUserListModal = true;
+    this.showSettings = false;
+    this.loadUsers();
+  }
+
+  closeUserListModal() {
+    this.showUserListModal = false;
+    this.users = [];
+    this.userListError = null;
+  }
+
+  // Open create user modal from the user list
+  openCreateUserFromList() {
+    this.showCreateUserModal = true;
+    // Don't close the user list modal yet - we'll handle it in create user flow
+    this.createError = null;
+    this.createSuccess = null;
+    this.createUserForm.reset({ email: '', password: '', role: 'store' });
+  }
+
+  // Original open create user modal (kept for backward compatibility)
   openCreateUserModal() {
     this.showCreateUserModal = true;
     this.showSettings = false;
     this.createError = null;
     this.createSuccess = null;
-    this.createUserForm.reset({ email: '', password: '', role: 'user' });
+    this.createUserForm.reset({ email: '', password: '', role: 'store' });
   }
 
   closeCreateUserModal() {
     this.showCreateUserModal = false;
+  }
+
+  // Load all users from Firestore - FIXED VERSION
+  async loadUsers() {
+    this.loadingUsers = true;
+    this.userListError = null;
+
+    try {
+      // Check if user is admin
+      if (!this.isAdmin) {
+        throw new Error('You do not have permission to view users');
+      }
+
+      console.log('Loading users from Firestore...');
+      
+      // Get reference to users collection
+      const usersRef = collection(this.firestore, 'users');
+      
+      // Create query ordered by createdAt descending
+      const q = query(usersRef, orderBy('createdAt', 'desc'));
+      
+      // Get documents using getDocs (not collectionData)
+      const querySnapshot = await getDocs(q);
+      
+      console.log('Found users count:', querySnapshot.size);
+      
+      // Map documents to User objects
+      const loadedUsers: User[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        loadedUsers.push({
+          uid: doc.id,
+          email: data['email'] || '',
+          role: data['role'] || 'user',
+          createdAt: data['createdAt'] || null,
+          updatedAt: data['updatedAt'] || null
+        });
+      });
+      
+      this.users = loadedUsers;
+      console.log('Users loaded successfully:', this.users);
+      
+    } catch (err: any) {
+      console.error('Error loading users:', err);
+      
+      // Handle specific error cases
+      if (err.code === 'permission-denied') {
+        this.userListError = 'You do not have permission to view users. Please check your Firebase security rules.';
+      } else if (err.code === 'failed-precondition') {
+        this.userListError = 'The required index is not created. Please check the Firebase Console to create the index.';
+      } else {
+        this.userListError = err?.message || 'Failed to load users. Please try again.';
+      }
+    } finally {
+      this.loadingUsers = false;
+    }
   }
 
   confirmLogoutFromHeader() {
@@ -228,6 +336,7 @@ export class DashboardComponent implements OnInit {
     }
 
     this.isCreating = true;
+    this.isCreatingUser = true;
     this.createError = null;
     this.createSuccess = null;
 
@@ -239,22 +348,33 @@ export class DashboardComponent implements OnInit {
         throw new Error('You do not have permission to create users');
       }
 
-      // Get current admin user
+      // Get current admin user (auth will switch to new user during create, then back)
       const currentUser = this.authService.getCurrentUser();
       if (!currentUser) {
         throw new Error('You must be logged in as admin');
       }
+      const adminUid = currentUser.uid;
 
       console.log('Creating new user with email:', email, 'role:', role);
       
-      // Use the updated createUserAccount method
+      // createUserAccount signs in as new user, then signs back in as admin
       await this.userService.createUserAccount(email, password, role);
       
       this.createSuccess = 'User created successfully!';
-      this.createUserForm.reset({ email: '', password: '', role: 'user' });
+      this.createUserForm.reset({ email: '', password: '', role: 'store' });
       
-      // Auto close after success
-      setTimeout(() => this.closeCreateUserModal(), 1500);
+      // Reload admin role (auth is back to admin, but we ignored the auth change)
+      await this.loadUserRole(adminUid);
+      
+      // Refresh the user list if it's open
+      if (this.showUserListModal) {
+        await this.loadUsers();
+      }
+      
+      // Auto close create modal after success
+      setTimeout(() => {
+        this.closeCreateUserModal();
+      }, 1500);
     } catch (err: any) {
       console.error('Create user failed', err);
       
@@ -274,6 +394,7 @@ export class DashboardComponent implements OnInit {
       }
     } finally {
       this.isCreating = false;
+      this.isCreatingUser = false;
     }
   }
 

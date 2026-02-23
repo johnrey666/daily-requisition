@@ -1,28 +1,52 @@
 // src/app/core/services/auth.service.ts
 import { Injectable } from '@angular/core';
-import { Auth, authState, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword } from '@angular/fire/auth';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Auth, authState, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword, User } from '@angular/fire/auth';
+import { BehaviorSubject, Observable, firstValueFrom, timeout, catchError, of } from 'rxjs';
+import { map, take, filter } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  user$: BehaviorSubject<any> = new BehaviorSubject<any>(null);
+  user$: BehaviorSubject<User | null> = new BehaviorSubject<User | null>(null);
 
   constructor(private auth: Auth) {
     // Subscribe to auth state changes
     authState(this.auth).subscribe((user) => {
+      console.log('Auth state changed:', user?.email);
       this.user$.next(user);
     });
   }
 
   // Get current user as observable
-  getCurrentUserObservable(): Observable<any> {
+  getCurrentUserObservable(): Observable<User | null> {
     return authState(this.auth);
   }
 
-  // Get current user as promise
-  getCurrentUserPromise(): Promise<any> {
-    return Promise.resolve(this.auth.currentUser);
+  // Get current user as promise - waits for Firebase to restore session on reload
+  async getCurrentUserPromise(): Promise<User | null> {
+    // First check if we already have a user synchronously
+    if (this.auth.currentUser) {
+      console.log('Found current user synchronously:', this.auth.currentUser.email);
+      return this.auth.currentUser;
+    }
+    
+    // Otherwise wait for auth state to resolve (with timeout)
+    try {
+      const user = await firstValueFrom(
+        authState(this.auth).pipe(
+          // Wait for first emission (could be null or user)
+          take(1),
+          // Add timeout to prevent hanging forever
+          timeout(3000),
+          // Handle timeout gracefully
+          catchError(() => of(null))
+        )
+      );
+      console.log('Auth state resolved:', user?.email);
+      return user;
+    } catch (err) {
+      console.log('Error getting current user:', err);
+      return null;
+    }
   }
 
   // Get current user synchronously

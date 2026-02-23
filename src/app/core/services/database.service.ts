@@ -1,6 +1,7 @@
 // src/app/core/services/database.service.ts
 import { Injectable } from '@angular/core';
-import { Firestore, collection, addDoc, getDocs, query, where, doc, getDoc, updateDoc, deleteDoc, writeBatch, orderBy } from '@angular/fire/firestore';
+import { Firestore, collection, addDoc, query, where, doc, getDoc, updateDoc, deleteDoc, writeBatch, orderBy } from '@angular/fire/firestore';
+import { getDocs } from 'firebase/firestore';
 import { AuthService } from './auth.service';
 import { firstValueFrom } from 'rxjs';
 import { User } from '../models/database.model';
@@ -376,6 +377,21 @@ export class DatabaseService {
     }
   }
 
+  async getTableById(tableId: string): Promise<{ id: string; name: string } | null> {
+    try {
+      const tableRef = doc(this.firestore, 'tables', tableId);
+      const tableDoc = await getDoc(tableRef);
+      if (tableDoc.exists()) {
+        const d = tableDoc.data();
+        return { id: tableDoc.id, name: d['name'] || 'Untitled' };
+      }
+      return null;
+    } catch (err) {
+      console.error('getTableById failed', err);
+      return null;
+    }
+  }
+
   async updateTableName(tableId: string, name: string, userId: string): Promise<boolean> {
     try {
       // Verify ownership
@@ -692,6 +708,18 @@ export class DatabaseService {
           updateData.rejected_at = new Date().toISOString();
           updateData.rejected_by = userId;
           break;
+        case 'Production_Accepted':
+          updateData.production_accepted_at = new Date().toISOString();
+          updateData.production_accepted_by = userId;
+          break;
+        case 'Delivered':
+          updateData.delivered_at = new Date().toISOString();
+          updateData.delivered_by = userId;
+          break;
+        case 'Partially_Delivered':
+          updateData.partially_delivered_at = new Date().toISOString();
+          updateData.partially_delivered_by = userId;
+          break;
       }
       
       await updateDoc(reqRef, updateData);
@@ -782,6 +810,25 @@ export class DatabaseService {
    */
   async getRejectedRequisitions(tableId: string, userId: string): Promise<any[]> {
     return this.getRequisitionsByStatus(tableId, userId, 'Rejected');
+  }
+
+  /**
+   * Get all requisitions by status across all tables (for production/procurement workflow)
+   * Used when production needs to see all Submitted from store/users, or procurement sees all Production_Accepted
+   */
+  async getAllRequisitionsByStatus(status: string): Promise<any[]> {
+    try {
+      const q = query(
+        collection(this.firestore, 'requisitions'),
+        where('status', '==', status),
+        orderBy('created_at', 'desc')
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (err) {
+      console.error('getAllRequisitionsByStatus failed:', err);
+      return [];
+    }
   }
 
   // ────────────────────────────────────────────────

@@ -650,3 +650,196 @@
     transform-origin: center;
   }
 }
+
+/* Add to existing CSS */
+
+/* Large modal variant */
+.modal-lg {
+  width: 800px;
+  max-width: calc(100% - 32px);
+}
+
+/* User list header */
+.user-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.user-count {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--muted));
+  padding: 0.25rem 0.75rem;
+  border-radius: 2rem;
+}
+
+.create-user-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.create-user-btn .icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+/* Loading container */
+.loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.loading-container .spinner {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-width: 3px;
+}
+
+/* Table styles */
+.table-container {
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border));
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.users-table th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  font-weight: 600;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.users-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+.users-table tr:last-child td {
+  border-bottom: none;
+}
+
+.users-table tr:hover td {
+  background: hsl(var(--muted) / 0.3);
+}
+
+.user-email {
+  font-weight: 500;
+}
+
+.email-text {
+  color: hsl(199 89% 48%);
+}
+
+.user-created {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.8125rem;
+}
+
+/* Role badges */
+.role-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 2rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+
+.role-badge.role-admin {
+  background: #e11d48;
+  color: white;
+}
+
+.role-badge.role-production {
+  background: #22c55e;
+  color: white;
+}
+
+.role-badge.role-store {
+  background: #a855f7;
+  color: white;
+}
+
+.role-badge.role-procurement {
+  background: #3b82f6;
+  color: white;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-state h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.125rem;
+  color: hsl(var(--foreground));
+}
+
+.empty-state p {
+  margin: 0 0 1.5rem 0;
+  color: hsl(var(--muted-foreground));
+}
+
+/* Retry button */
+.retry-btn {
+  margin-left: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.25rem;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.retry-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .modal-lg {
+    width: 95%;
+  }
+  
+  .user-list-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  
+  .users-table {
+    font-size: 0.75rem;
+  }
+  
+  .users-table th,
+  .users-table td {
+    padding: 0.5rem;
+  }
+}

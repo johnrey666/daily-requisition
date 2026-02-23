@@ -155,9 +155,9 @@
 
             <!-- Settings Dropdown Menu - Only visible for admin -->
             <div class="settings-dropdown" *ngIf="showSettings && isAdmin" (click)="$event.stopPropagation()">
-              <button class="dropdown-item" (click)="openCreateUserModal()">
-                <span class="icon">👤</span>
-                Create User
+              <button class="dropdown-item" (click)="openUserListModal()">
+                <span class="icon">👥</span>
+                Manage Users
               </button>
               <div class="dropdown-divider"></div>
               <button class="dropdown-item" (click)="confirmLogoutFromHeader()">
@@ -177,7 +177,83 @@
   </div>
 </div>
 
-<!-- Create User Modal - Only accessible by admin -->
+<!-- User List Modal - Shows all users first -->
+<div class="modal-overlay" *ngIf="showUserListModal" (click)="closeUserListModal()">
+  <div class="modal modal-lg" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Manage Users</h3>
+      <button class="modal-close" (click)="closeUserListModal()">×</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="user-list-header">
+        <div class="user-list-title">
+          <span class="user-count" *ngIf="users.length > 0">{{ users.length }} user(s) found</span>
+        </div>
+        <button class="btn primary create-user-btn" (click)="openCreateUserFromList()">
+          <span class="icon">+</span> Create New User
+        </button>
+      </div>
+
+      <!-- Loading state -->
+      <div class="loading-container" *ngIf="loadingUsers">
+        <div class="spinner"></div>
+        <span>Loading users...</span>
+      </div>
+
+      <!-- Error state -->
+      <div class="alert error" *ngIf="userListError">
+        {{ userListError }}
+        <button class="retry-btn" (click)="loadUsers()">Retry</button>
+      </div>
+
+      <!-- Users table -->
+      <div class="table-container" *ngIf="!loadingUsers && !userListError && users.length > 0">
+        <table class="users-table">
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>User Type / Role</th>
+              <th>Created At</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let user of users">
+              <td class="user-email">
+                <span class="email-text">{{ user.email }}</span>
+              </td>
+              <td>
+                <span class="role-badge" [class.role-admin]="user.role === 'admin'"
+                                       [class.role-production]="user.role === 'production'"
+                                       [class.role-store]="user.role === 'store'"
+                                       [class.role-procurement]="user.role === 'procurement'">
+                  {{ user.role || 'user' }}
+                </span>
+              </td>
+              <td class="user-created">
+                {{ user.createdAt ? (user.createdAt.toDate() | date:'medium') : 'N/A' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty state -->
+      <div class="empty-state" *ngIf="!loadingUsers && !userListError && users.length === 0">
+        <div class="empty-icon">👥</div>
+        <h4>No Users Found</h4>
+        <p>Get started by creating your first user.</p>
+        <button class="btn primary" (click)="openCreateUserFromList()">Create User</button>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn" (click)="closeUserListModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create User Modal -->
 <div class="modal-overlay" *ngIf="showCreateUserModal" (click)="closeCreateUserModal()">
   <div class="modal" (click)="$event.stopPropagation()">
     <div class="modal-header">
@@ -207,10 +283,9 @@
       <div class="form-group">
         <label>Role</label>
         <select formControlName="role">
-          <option value="user">User</option>
-          <option value="store">Store</option>
-          <option value="production">Production</option>
-          <option value="procurement">Procurement</option>
+          <option value="store">Store/User (create in production, procurement, dashboard)</option>
+          <option value="production">Production (accept/decline store input in procurement)</option>
+          <option value="procurement">Procurement (confirm delivery, add missing notes)</option>
           <option value="admin">Admin</option>
         </select>
       </div>
