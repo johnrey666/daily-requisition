@@ -9,55 +9,70 @@
     </div>
     <nav class="sidebar-nav">
       <div class="nav-section">
-        @for (item of navItems; track item.route) {
-          <a
-            [routerLink]="item.route"
-            routerLinkActive="active"
-            [routerLinkActiveOptions]="{ exact: item.route === '/dashboard' }"
-            class="nav-item"
-          >
-            <span class="nav-icon">
-              @switch (item.icon) {
-                @case ('dashboard') {
-                  <!-- Bar chart with colored bars -->
-                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="3" y="12" width="3" height="6" fill="#22c55e" rx="0.5"/>
-                    <rect x="7" y="8" width="3" height="10" fill="#a855f7" rx="0.5"/>
-                    <rect x="11" y="14" width="3" height="4" fill="#ef4444" rx="0.5"/>
-                    <rect x="15" y="6" width="3" height="12" fill="#3b82f6" rx="0.5"/>
-                  </svg>
-                }
-                @case ('factory') {
-                  <!-- Factory/Industrial building -->
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/>
-                    <path d="M9 9v0M9 15v0M15 11v0M15 17v0"/>
-                  </svg>
-                }
-                @case ('document') {
-                  <!-- Document with pencil -->
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                    <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
-                    <path d="M18 2l4 4"/>
-                  </svg>
-                }
-                @case ('line-chart') {
-                  <!-- Line chart with upward trend -->
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M3 18l6-6 4 4 8-8"/>
-                    <path d="M21 12h-4v4"/>
-                  </svg>
-                }
-              }
-            </span>
-            <span class="nav-label">{{ item.label }}</span>
-          </a>
-        }
+        <a
+          *ngFor="let item of filteredNavItems"
+          [routerLink]="item.route"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: item.route === '/dashboard' }"
+          class="nav-item"
+        >
+          <span class="nav-icon">
+            <ng-container [ngSwitch]="item.icon">
+              <ng-container *ngSwitchCase="'dashboard'">
+                <!-- Bar chart with colored bars -->
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="3" y="12" width="3" height="6" fill="#22c55e" rx="0.5"/>
+                  <rect x="7" y="8" width="3" height="10" fill="#a855f7" rx="0.5"/>
+                  <rect x="11" y="14" width="3" height="4" fill="#ef4444" rx="0.5"/>
+                  <rect x="15" y="6" width="3" height="12" fill="#3b82f6" rx="0.5"/>
+                </svg>
+              </ng-container>
+              <ng-container *ngSwitchCase="'factory'">
+                <!-- Factory/Industrial building -->
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/>
+                  <path d="M9 9v0M9 15v0M15 11v0M15 17v0"/>
+                </svg>
+              </ng-container>
+              <ng-container *ngSwitchCase="'document'">
+                <!-- Document with pencil -->
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                  <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+                  <path d="M18 2l4 4"/>
+                </svg>
+              </ng-container>
+              <ng-container *ngSwitchCase="'line-chart'">
+                <!-- Line chart with upward trend -->
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 18l6-6 4 4 8-8"/>
+                  <path d="M21 12h-4v4"/>
+                </svg>
+              </ng-container>
+              <ng-container *ngSwitchCase="'store'">
+                <!-- Store icon -->
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                  <path d="M9 22V12h6v10"/>
+                </svg>
+              </ng-container>
+              <ng-container *ngSwitchCase="'users'">
+                <!-- Users icon -->
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </ng-container>
+            </ng-container>
+          </span>
+          <span class="nav-label">{{ item.label }}</span>
+        </a>
       </div>
     </nav>
     <div class="sidebar-footer">
-      <a routerLink="/login" class="nav-item nav-item-footer">
+      <a href="javascript:void(0)" class="nav-item nav-item-footer" (click)="confirmLogoutFromSidebar()">
         <span class="nav-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12h-8"/>
@@ -98,28 +113,59 @@
           </svg>
         </button>
         <button type="button" class="header-icon-btn" (click)="toggleTheme()" [attr.aria-label]="themeService.isDarkMode() ? 'Switch to light mode' : 'Switch to dark mode'">
-          @if (themeService.isDarkMode()) {
+          <ng-container *ngIf="themeService.isDarkMode(); else lightMode">
             <!-- Sun icon for light mode (shown when in dark mode) -->
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="5"/>
               <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
             </svg>
-          } @else {
+          </ng-container>
+          <ng-template #lightMode>
             <!-- Moon icon for dark mode (shown when in light mode) -->
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
             </svg>
-          }
+          </ng-template>
         </button>
-        <button type="button" class="header-icon-btn" aria-label="Settings">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
-          </svg>
-        </button>
-        <div class="header-user">
-          <div class="user-avatar">SB</div>
-          <span class="user-name">Stebin Ben</span>
+        
+        <!-- User Profile Section -->
+        <div class="header-user" *ngIf="user$ | async as user">
+          <div class="user-avatar">{{ getUserInitials(user) }}</div>
+          <div class="user-info">
+            <span class="user-name">{{ getUserDisplayName(user) }}</span>
+            <span class="user-role" *ngIf="userRole">({{ userRole }})</span>
+          </div>
+
+          <!-- Settings container with relative positioning -->
+          <div class="settings-container" #settingsContainer>
+            <!-- Gear icon - only visible for admin users -->
+            <button 
+              *ngIf="isAdmin" 
+              type="button" 
+              class="header-icon-btn settings-btn" 
+              (click)="toggleSettings()" 
+              aria-label="Settings"
+              [class.active]="showSettings"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+              </svg>
+            </button>
+
+            <!-- Settings Dropdown Menu - Only visible for admin -->
+            <div class="settings-dropdown" *ngIf="showSettings && isAdmin" (click)="$event.stopPropagation()">
+              <button class="dropdown-item" (click)="openUserListModal()">
+                <span class="icon">👥</span>
+                Manage Users
+              </button>
+              <div class="dropdown-divider"></div>
+              <button class="dropdown-item" (click)="confirmLogoutFromHeader()">
+                <span class="icon">🚪</span>
+                Sign Out
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </header>
@@ -128,5 +174,154 @@
     <main class="main">
       <router-outlet />
     </main>
+  </div>
+</div>
+
+<!-- User List Modal - Shows all users first -->
+<div class="modal-overlay" *ngIf="showUserListModal" (click)="closeUserListModal()">
+  <div class="modal modal-lg" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Manage Users</h3>
+      <button class="modal-close" (click)="closeUserListModal()">×</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="user-list-header">
+        <div class="user-list-title">
+          <span class="user-count" *ngIf="users.length > 0">{{ users.length }} user(s) found</span>
+        </div>
+        <button class="btn primary create-user-btn" (click)="openCreateUserFromList()">
+          <span class="icon">+</span> Create New User
+        </button>
+      </div>
+
+      <!-- Loading state -->
+      <div class="loading-container" *ngIf="loadingUsers">
+        <div class="spinner"></div>
+        <span>Loading users...</span>
+      </div>
+
+      <!-- Error state -->
+      <div class="alert error" *ngIf="userListError">
+        {{ userListError }}
+        <button class="retry-btn" (click)="loadUsers()">Retry</button>
+      </div>
+
+      <!-- Users table -->
+      <div class="table-container" *ngIf="!loadingUsers && !userListError && users.length > 0">
+        <table class="users-table">
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>User Type / Role</th>
+              <th>Created At</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let user of users">
+              <td class="user-email">
+                <span class="email-text">{{ user.email }}</span>
+              </td>
+              <td>
+                <span class="role-badge" [class.role-admin]="user.role === 'admin'"
+                                       [class.role-production]="user.role === 'production'"
+                                       [class.role-store]="user.role === 'store'"
+                                       [class.role-procurement]="user.role === 'procurement'">
+                  {{ user.role || 'user' }}
+                </span>
+              </td>
+              <td class="user-created">
+                {{ user.createdAt ? (user.createdAt.toDate() | date:'medium') : 'N/A' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty state -->
+      <div class="empty-state" *ngIf="!loadingUsers && !userListError && users.length === 0">
+        <div class="empty-icon">👥</div>
+        <h4>No Users Found</h4>
+        <p>Get started by creating your first user.</p>
+        <button class="btn primary" (click)="openCreateUserFromList()">Create User</button>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn" (click)="closeUserListModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create User Modal -->
+<div class="modal-overlay" *ngIf="showCreateUserModal" (click)="closeCreateUserModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Create New User</h3>
+      <button class="modal-close" (click)="closeCreateUserModal()">×</button>
+    </div>
+
+    <form [formGroup]="createUserForm" (ngSubmit)="createUser()">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" formControlName="email" placeholder="user@example.com" />
+        <div class="field-error" *ngIf="createUserForm.get('email')?.invalid && createUserForm.get('email')?.touched">
+          <small *ngIf="createUserForm.get('email')?.errors?.['required']">Email is required</small>
+          <small *ngIf="createUserForm.get('email')?.errors?.['email']">Invalid email format</small>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" formControlName="password" placeholder="••••••••" />
+        <div class="field-error" *ngIf="createUserForm.get('password')?.invalid && createUserForm.get('password')?.touched">
+          <small *ngIf="createUserForm.get('password')?.errors?.['required']">Password is required</small>
+          <small *ngIf="createUserForm.get('password')?.errors?.['minlength']">Password must be at least 6 characters</small>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Role</label>
+        <select formControlName="role">
+          <option value="store">Store/User (create in production, procurement, dashboard)</option>
+          <option value="production">Production (accept/decline store input in procurement)</option>
+          <option value="procurement">Procurement (confirm delivery, add missing notes)</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+
+      <div class="form-group" *ngIf="createError || createSuccess">
+        <div class="alert error" *ngIf="createError">{{ createError }}</div>
+        <div class="alert success" *ngIf="createSuccess">{{ createSuccess }}</div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn" (click)="closeCreateUserModal()">Cancel</button>
+        <button type="submit" class="btn primary" [disabled]="isCreating || createUserForm.invalid">
+          <span *ngIf="isCreating" class="spinner"></span>
+          <span *ngIf="!isCreating">Create User</span>
+          <span *ngIf="isCreating">Creating...</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Logout Confirmation Modal -->
+<div class="modal-overlay" *ngIf="showLogoutConfirm" (click)="cancelLogout()">
+  <div class="modal modal-confirm" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Confirm Sign Out</h3>
+      <button class="modal-close" (click)="cancelLogout()">×</button>
+    </div>
+    
+    <div class="modal-body">
+      <p>Are you sure you want to sign out?</p>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn" (click)="cancelLogout()">Cancel</button>
+      <button type="button" class="btn primary danger" (click)="logout()">Sign Out</button>
+    </div>
   </div>
 </div>
