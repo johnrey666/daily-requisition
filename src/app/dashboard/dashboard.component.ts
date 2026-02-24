@@ -7,9 +7,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../core/services/auth.service';
 import { UserService } from '../core/services/user.service';
 import { Observable, firstValueFrom, Subscription } from 'rxjs';
-import { Firestore, collection, getDocs, doc, setDoc, query, orderBy } from '@angular/fire/firestore';
-import { getDoc } from 'firebase/firestore';
-import { serverTimestamp } from 'firebase/firestore';
+import { Firestore, collection, getDocs, doc, setDoc, query, orderBy, getDoc, serverTimestamp } from '@angular/fire/firestore';
 
 interface NavItem {
   label: string;
@@ -107,15 +105,22 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   async ngOnInit() {
+    console.log('Dashboard ngOnInit - Starting');
     // Load user role immediately
     await this.loadUserRole();
     
     // Subscribe to auth state changes (skip during user creation - auth temporarily switches)
     this.userSubscription = this.user$.subscribe(async (user) => {
-      if (this.isCreatingUser) return;
+      console.log('Dashboard - Auth state changed:', user?.email);
+      if (this.isCreatingUser) {
+        console.log('Dashboard - Skipping role load during user creation');
+        return;
+      }
       if (user?.uid) {
+        console.log('Dashboard - User authenticated, loading role for:', user.uid);
         await this.loadUserRole(user.uid);
       } else {
+        console.log('Dashboard - No user, clearing role');
         this.userRole = null;
         this.isAdmin = false;
         this.filteredNavItems = [];
@@ -133,25 +138,32 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private async loadUserRole(uid?: string) {
     try {
       const userId = uid || this.authService.getUserId();
+      console.log('loadUserRole - userId:', userId);
+      
       if (!userId) {
+        console.log('loadUserRole - No userId found');
         this.userRole = null;
         this.isAdmin = false;
         this.filteredNavItems = [];
         return;
       }
 
+      console.log('loadUserRole - Fetching user doc for:', userId);
       const userDocRef = doc(this.firestore, 'users', userId);
       const userDoc = await getDoc(userDocRef);
       
       if (userDoc.exists()) {
-        const data = userDoc.data() as any;
+        const data = userDoc.data();
+        console.log('loadUserRole - User doc data:', data);
         this.userRole = data['role'] || 'user';
         this.isAdmin = this.userRole === 'admin';
         console.log('User role loaded:', this.userRole, 'isAdmin:', this.isAdmin);
         
         // Filter nav items based on user role
         this.filterNavItems();
+        console.log('Filtered nav items:', this.filteredNavItems);
       } else {
+        console.log('loadUserRole - No user document found, creating one');
         // Create user document if it doesn't exist
         const currentUser = await firstValueFrom(this.user$);
         if (currentUser) {
@@ -165,6 +177,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
           this.userRole = 'user';
           this.isAdmin = false;
           this.filterNavItems();
+          console.log('Created default user document, filtered nav items:', this.filteredNavItems);
         }
       }
     } catch (err) {
@@ -176,14 +189,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private filterNavItems() {
+    console.log('filterNavItems - Current userRole:', this.userRole);
+    
     if (!this.userRole) {
+      console.log('filterNavItems - No user role, setting empty array');
       this.filteredNavItems = [];
       return;
     }
 
-    this.filteredNavItems = this.navItems.filter(item => 
-      item.roles.includes(this.userRole as string)
-    );
+    this.filteredNavItems = this.navItems.filter(item => {
+      const hasRole = item.roles.includes(this.userRole as string);
+      console.log(`filterNavItems - Item ${item.label} (${item.route}) - hasRole: ${hasRole}, item.roles:`, item.roles);
+      return hasRole;
+    });
+    
+    console.log('filterNavItems - Final filtered items:', this.filteredNavItems);
   }
 
   shouldShowNavItem(item: NavItem): boolean {
@@ -257,7 +277,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.showCreateUserModal = false;
   }
 
-  // Load all users from Firestore - FIXED VERSION
+  // Load all users from Firestore
   async loadUsers() {
     this.loadingUsers = true;
     this.userListError = null;
@@ -276,7 +296,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       // Create query ordered by createdAt descending
       const q = query(usersRef, orderBy('createdAt', 'desc'));
       
-      // Get documents using getDocs (not collectionData)
+      // Get documents using getDocs
       const querySnapshot = await getDocs(q);
       
       console.log('Found users count:', querySnapshot.size);

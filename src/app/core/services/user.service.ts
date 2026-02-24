@@ -40,7 +40,7 @@ export class UserService {
       const uid = cred.user.uid;
       console.log('New user created with UID:', uid);
 
-      // Create user document in Firestore - FIXED: Proper way to create document reference
+      // Create user document in Firestore
       const userRef = doc(this.firestore, 'users', uid);
       await setDoc(userRef, {
         email,

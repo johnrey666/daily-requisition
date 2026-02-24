@@ -56,11 +56,13 @@ export class AuthService {
 
   // Sign in with email and password
   signIn(email: string, password: string): Promise<any> {
+    console.log('Attempting to sign in:', email);
     return signInWithEmailAndPassword(this.auth, email, password);
   }
 
   // Sign out
   signOut(): Promise<void> {
+    console.log('Signing out');
     // Clear stored admin password on logout
     sessionStorage.removeItem('adminPassword');
     return signOut(this.auth);

@@ -2,8 +2,7 @@
 import { Injectable } from '@angular/core';
 import { CanActivate, ActivatedRouteSnapshot, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
-import { Firestore, doc } from '@angular/fire/firestore';
-import { getDoc } from 'firebase/firestore';
+import { Firestore, doc, getDoc } from '@angular/fire/firestore'; // Import getDoc from @angular/fire/firestore
 
 @Injectable({
   providedIn: 'root'
@@ -25,11 +24,14 @@ export class RoleGuard implements CanActivate {
     }
 
     try {
-      const userDoc = await getDoc(doc(this.firestore, 'users', user.uid));
+      console.log('RoleGuard: Checking role for user:', user.uid);
+      const userDocRef = doc(this.firestore, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+      
       let userRole = 'user';
       
       if (userDoc.exists()) {
-        const data = userDoc.data() as any;
+        const data = userDoc.data();
         userRole = data['role'] || 'user';
         console.log('RoleGuard: User role found:', userRole);
       } else {
