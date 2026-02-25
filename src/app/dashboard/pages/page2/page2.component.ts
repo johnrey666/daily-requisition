@@ -14,25 +14,26 @@ interface Material {
   type: string;
 }
 
-interface InventoryItem {
+interface ProductionItem {
   id: string;
   sku_code: string;
   sku_name: string;
   category: string;
   supplier: string;
-  qty: number;
+  qty_needed: number;
   table_id: string;
   user_id: string;
   materials?: Material[];
   materialCount?: number;
   totalRequired?: number;
+  created_at?: string;
 }
 
-interface UserTable {
+interface ProductionTable {
   id: string;
   name: string;
   user_id: string;
-  type: 'inventory' | 'requisition';
+  type: 'requisition' | 'inventory';
   item_count?: number;
   created_at?: string;
   updated_at?: string;
@@ -51,18 +52,18 @@ export class Page2Component implements OnInit {
     sku_code: '',
     sku_name: '',
     supplier: '',
-    qty: null as number | null
+    qty_needed: null as number | null
   };
 
   categories: string[] = [];
   availableSkus: { sku_code: string; sku_name: string }[] = [];
-  inventoryItems: InventoryItem[] = [];
-  filteredItems: InventoryItem[] = [];
-  paginatedItems: InventoryItem[] = [];
+  productionItems: ProductionItem[] = [];
+  filteredItems: ProductionItem[] = [];
+  paginatedItems: ProductionItem[] = [];
   
-  // Table Management - Only inventory type
-  userTables: UserTable[] = [];
-  currentTable: UserTable | null = null;
+  // Table Management - Only requisition type for production
+  productionTables: ProductionTable[] = [];
+  currentTable: ProductionTable | null = null;
   showTableDropdown = false;
 
   uploadingMaster = false;
@@ -89,6 +90,9 @@ export class Page2Component implements OnInit {
   userRole: string = '';
   userId: string = '';
 
+  // Allowed roles for accessing this page
+  private readonly allowedRoles = ['user', 'store', 'production', 'procurement', 'admin'];
+
   // Expose Math to template
   Math = Math;
 
@@ -105,7 +109,7 @@ export class Page2Component implements OnInit {
       this.userId = user.uid;
       await this.loadUserRole();
       await this.loadCategories();
-      await this.loadUserTables();
+      await this.loadProductionTables();
     } else {
       this.showToast('Please log in to continue', 'error');
       this.router.navigate(['/login']);
@@ -118,21 +122,27 @@ export class Page2Component implements OnInit {
       if (userDoc.exists()) {
         const data = userDoc.data() as any;
         this.userRole = data['role'] || 'user';
+        console.log('User role loaded:', this.userRole);
         
-        // Redirect if not authorized for store
-        if (this.userRole !== 'store' && this.userRole !== 'admin') {
-          this.showToast('You do not have access to Store Management', 'error');
+        // Check if user has access to production page
+        if (!this.allowedRoles.includes(this.userRole)) {
+          this.showToast('You do not have access to Production Management', 'error');
           this.router.navigate(['/dashboard']);
         }
+      } else {
+        this.userRole = 'user'; // Default to user
+        console.log('No role document found, defaulting to user');
       }
     } catch (err) {
       console.error('Failed to load user role', err);
+      this.userRole = 'user';
     }
   }
 
   async loadCategories() {
     try {
       this.categories = await this.db.getUniqueCategories();
+      console.log('Loaded categories:', this.categories);
     } catch (err) {
       console.error('Failed to load categories', err);
       this.categories = [];
@@ -140,42 +150,43 @@ export class Page2Component implements OnInit {
     }
   }
 
-  async loadUserTables() {
+  async loadProductionTables() {
     try {
       if (!this.userId) {
         this.showToast('You must be logged in', 'error');
         return;
       }
       
-      // Only load inventory type tables
-      this.userTables = await this.db.getUserTablesByType(this.userId, 'inventory');
+      // Load requisition type tables for production
+      this.productionTables = await this.db.getUserTablesByType(this.userId, 'requisition');
+      console.log('Loaded production tables:', this.productionTables);
       
       // Load last selected table from localStorage or use first table
-      const lastTableId = localStorage.getItem(`lastSelectedInventoryTable_${this.userId}`);
-      if (lastTableId && this.userTables.some(t => t.id === lastTableId)) {
-        this.currentTable = this.userTables.find(t => t.id === lastTableId) || null;
-      } else if (this.userTables.length > 0) {
-        this.currentTable = this.userTables[0];
+      const lastTableId = localStorage.getItem(`lastSelectedProductionTable_${this.userId}`);
+      if (lastTableId && this.productionTables.some(t => t.id === lastTableId)) {
+        this.currentTable = this.productionTables.find(t => t.id === lastTableId) || null;
+      } else if (this.productionTables.length > 0) {
+        this.currentTable = this.productionTables[0];
       }
       
       if (this.currentTable) {
-        await this.loadInventory();
+        await this.loadProductionItems();
       } else {
-        this.inventoryItems = [];
+        this.productionItems = [];
         this.filteredItems = [];
         this.updatePagination();
       }
     } catch (err) {
-      console.error('Failed to load user tables', err);
-      this.userTables = [];
+      console.error('Failed to load production tables', err);
+      this.productionTables = [];
       this.currentTable = null;
       this.showToast('Failed to load tables', 'error');
     }
   }
 
-  async loadInventory() {
+  async loadProductionItems() {
     if (!this.currentTable) {
-      this.inventoryItems = [];
+      this.productionItems = [];
       this.filteredItems = [];
       this.updatePagination();
       return;
@@ -187,19 +198,31 @@ export class Page2Component implements OnInit {
         return;
       }
 
-      const items = await this.db.getInventoryItemsByTable(this.currentTable.id, this.userId);
-      this.inventoryItems = items.map((item: any) => ({
-        ...item,
+      // Get requisitions for this table
+      const requisitions = await this.db.getTableRequisitions(this.currentTable.id, this.userId);
+      console.log('Loaded requisitions:', requisitions);
+      
+      this.productionItems = requisitions.map((req: any) => ({
+        id: req.id,
+        sku_code: req.sku_code,
+        sku_name: req.sku_name,
+        category: req.category,
+        supplier: req.supplier,
+        qty_needed: req.qty_needed,
+        table_id: req.table_id,
+        user_id: req.user_id,
+        created_at: req.created_at,
         materialCount: 0,
         totalRequired: 0
       }));
+      
       this.applyFilter();
     } catch (err) {
-      console.error('Failed to load inventory', err);
-      this.inventoryItems = [];
+      console.error('Failed to load production items', err);
+      this.productionItems = [];
       this.filteredItems = [];
       this.updatePagination();
-      this.showToast('Failed to load inventory', 'error');
+      this.showToast('Failed to load production items', 'error');
     }
   }
 
@@ -214,6 +237,7 @@ export class Page2Component implements OnInit {
 
     try {
       this.availableSkus = await this.db.getSkusByCategory(this.newItem.category);
+      console.log('Available SKUs for category:', this.availableSkus);
     } catch (err) {
       console.error('Failed to load SKUs', err);
       this.availableSkus = [];
@@ -224,10 +248,6 @@ export class Page2Component implements OnInit {
   onSkuChange() {
     const found = this.availableSkus.find(s => s.sku_code === this.newItem.sku_code);
     this.newItem.sku_name = found?.sku_name || '';
-  }
-
-  onQuantityChange() {
-    // This will be calculated when materials are loaded
   }
 
   async onFileSelected(event: Event) {
@@ -262,7 +282,7 @@ export class Page2Component implements OnInit {
            !!this.newItem.category &&
            !!this.newItem.sku_code &&
            !!this.newItem.supplier?.trim() &&
-           this.newItem.qty != null && this.newItem.qty > 0;
+           this.newItem.qty_needed != null && this.newItem.qty_needed > 0;
   }
 
   async addItem() {
@@ -290,30 +310,42 @@ export class Page2Component implements OnInit {
       sku_name: this.newItem.sku_name,
       category: this.newItem.category,
       supplier: this.newItem.supplier.trim(),
-      qty: this.newItem.qty!,
+      qty_needed: this.newItem.qty_needed!,
       table_id: this.currentTable.id,
       user_id: this.userId
     };
 
     try {
-      const res = await this.db.addInventoryItem(entry);
-      if (res.success && res.id) {
-        await this.addItemToTable(entry, res.id);
-        
-        const newItem: InventoryItem = { 
-          id: res.id, 
+      // Create requisition - note: createRequisition expects 2 arguments (data and materials array)
+      const result = await this.db.createRequisition(entry, []);
+      
+      // Check the response structure - assuming it returns { success: boolean, id: string }
+      if (result.success && result.id) {
+        const newItem: ProductionItem = { 
+          id: result.id, 
           ...entry, 
           materialCount: 0,
           totalRequired: 0
         };
         
-        this.inventoryItems.unshift(newItem);
-        this.applyFilter();
+        this.productionItems.unshift(newItem);
         
-        this.newItem = { category: '', sku_code: '', sku_name: '', supplier: '', qty: null };
+        // Update table item count
+        const newCount = (this.currentTable.item_count || 0) + 1;
+        await this.db.updateTableItemCount(this.currentTable.id, newCount, this.userId);
+        this.currentTable.item_count = newCount;
+        
+        // Refresh tables to get updated count
+        await this.loadProductionTables();
+        
+        // Reset form
+        this.newItem = { category: '', sku_code: '', sku_name: '', supplier: '', qty_needed: null };
         this.availableSkus = [];
         
-        this.showToast('Item added successfully', 'success');
+        // Apply filter to update view
+        this.applyFilter();
+        
+        this.showToast('Item added to production successfully', 'success');
       } else {
         this.showToast('Failed to save item', 'error');
       }
@@ -325,40 +357,7 @@ export class Page2Component implements OnInit {
     }
   }
 
-  async addItemToTable(itemData: any, itemId: string) {
-    if (!this.currentTable) return;
-    
-    try {
-      if (!this.userId) {
-        this.showToast('You must be logged in', 'error');
-        return;
-      }
-      
-      const requisitionData = {
-        table_id: this.currentTable.id,
-        user_id: this.userId,
-        sku_code: itemData.sku_code,
-        sku_name: itemData.sku_name,
-        category: itemData.category,
-        supplier: itemData.supplier,
-        qty_needed: itemData.qty,
-        inventory_item_id: itemId
-      };
-      
-      await this.db.createRequisition(requisitionData, []);
-      
-      const newCount = (this.currentTable.item_count || 0) + 1;
-      await this.db.updateTableItemCount(this.currentTable.id, newCount, this.userId);
-      this.currentTable.item_count = newCount;
-      
-      await this.loadUserTables();
-    } catch (err) {
-      console.error('Failed to add item to table', err);
-      this.showToast('Failed to add item to table', 'error');
-    }
-  }
-
-  async toggleRow(item: InventoryItem) {
+  async toggleRow(item: ProductionItem) {
     if (!item.id) return;
     
     this.expandedRows[item.id] = !this.expandedRows[item.id];
@@ -381,7 +380,7 @@ export class Page2Component implements OnInit {
   }
 
   applyFilter() {
-    let list = [...this.inventoryItems];
+    let list = [...this.productionItems];
 
     if (this.filterCategory) {
       list = list.filter(i => i.category === this.filterCategory);
@@ -409,7 +408,7 @@ export class Page2Component implements OnInit {
   }
 
   get totalQuantity(): number {
-    return this.filteredItems.reduce((sum, i) => sum + (i.qty || 0), 0);
+    return this.filteredItems.reduce((sum, i) => sum + (i.qty_needed || 0), 0);
   }
 
   calculateMaterialTotal(itemQty: number | null, qtyPerBatch: number | null): number {
@@ -430,9 +429,9 @@ export class Page2Component implements OnInit {
     }
   }
 
-  async selectTable(table: UserTable) {
+  async selectTable(table: ProductionTable) {
     // Verify table type
-    if (table.type !== 'inventory') {
+    if (table.type !== 'requisition') {
       this.showToast('Invalid table type', 'error');
       return;
     }
@@ -447,17 +446,17 @@ export class Page2Component implements OnInit {
     this.showTableDropdown = false;
     
     // Save selection with user-specific key
-    localStorage.setItem(`lastSelectedInventoryTable_${this.userId}`, table.id);
+    localStorage.setItem(`lastSelectedProductionTable_${this.userId}`, table.id);
     
     this.searchQuery = '';
     this.filterCategory = '';
     
-    await this.loadInventory();
-    this.showToast(`Switched to table: ${table.name}`, 'info');
+    await this.loadProductionItems();
+    this.showToast(`Switched to production line: ${table.name}`, 'info');
   }
 
   async createNewTable() {
-    const tableName = prompt('Enter table name:');
+    const tableName = prompt('Enter production line name:');
     if (!tableName?.trim()) return;
 
     try {
@@ -472,23 +471,23 @@ export class Page2Component implements OnInit {
         item_count: 0
       };
 
-      // Create table with type 'inventory'
-      const result = await this.db.createUserTable(tableData, 'inventory');
+      // Create table with type 'requisition' for production
+      const result = await this.db.createUserTable(tableData, 'requisition');
       if (result.success && result.tableId) {
-        await this.loadUserTables();
-        this.showToast(`Table "${tableName}" created successfully`, 'success');
+        await this.loadProductionTables();
+        this.showToast(`Production line "${tableName}" created successfully`, 'success');
       } else {
-        this.showToast('Failed to create table', 'error');
+        this.showToast('Failed to create production line', 'error');
       }
     } catch (err) {
       console.error('Failed to create table', err);
-      this.showToast('Error creating table', 'error');
+      this.showToast('Error creating production line', 'error');
     }
   }
 
-  async renameTable(table: UserTable) {
+  async renameTable(table: ProductionTable) {
     // Verify table type
-    if (table.type !== 'inventory') {
+    if (table.type !== 'requisition') {
       this.showToast('Invalid table type', 'error');
       return;
     }
@@ -499,7 +498,7 @@ export class Page2Component implements OnInit {
       return;
     }
 
-    const newName = prompt('Enter new table name:', table.name);
+    const newName = prompt('Enter new production line name:', table.name);
     if (!newName?.trim() || newName === table.name) return;
 
     try {
@@ -511,20 +510,20 @@ export class Page2Component implements OnInit {
       const success = await this.db.updateTableName(table.id, newName.trim(), this.userId);
       if (success) {
         table.name = newName.trim();
-        await this.loadUserTables();
-        this.showToast('Table renamed successfully', 'success');
+        await this.loadProductionTables();
+        this.showToast('Production line renamed successfully', 'success');
       } else {
-        this.showToast('Failed to rename table', 'error');
+        this.showToast('Failed to rename production line', 'error');
       }
     } catch (err) {
       console.error('Failed to rename table', err);
-      this.showToast('Error renaming table', 'error');
+      this.showToast('Error renaming production line', 'error');
     }
   }
 
-  async deleteTable(table: UserTable) {
+  async deleteTable(table: ProductionTable) {
     // Verify table type
-    if (table.type !== 'inventory') {
+    if (table.type !== 'requisition') {
       this.showToast('Invalid table type', 'error');
       return;
     }
@@ -535,7 +534,7 @@ export class Page2Component implements OnInit {
       return;
     }
 
-    if (!confirm(`Are you sure you want to delete table "${table.name}"? This will also delete all items in this table. This action cannot be undone.`)) {
+    if (!confirm(`Are you sure you want to delete production line "${table.name}"? This will also delete all items in this line. This action cannot be undone.`)) {
       return;
     }
 
@@ -547,32 +546,71 @@ export class Page2Component implements OnInit {
 
       const success = await this.db.deleteTable(table.id, this.userId);
       if (success) {
-        this.userTables = this.userTables.filter(t => t.id !== table.id);
+        this.productionTables = this.productionTables.filter(t => t.id !== table.id);
         
         if (this.currentTable?.id === table.id) {
-          if (this.userTables.length > 0) {
-            await this.selectTable(this.userTables[0]);
+          if (this.productionTables.length > 0) {
+            await this.selectTable(this.productionTables[0]);
           } else {
             this.currentTable = null;
-            this.inventoryItems = [];
+            this.productionItems = [];
             this.filteredItems = [];
             this.updatePagination();
           }
         }
         
-        this.showToast(`Table "${table.name}" deleted successfully`, 'success');
+        this.showToast(`Production line "${table.name}" deleted successfully`, 'success');
       } else {
-        this.showToast('Failed to delete table', 'error');
+        this.showToast('Failed to delete production line', 'error');
       }
     } catch (err) {
       console.error('Failed to delete table', err);
-      this.showToast('Error deleting table', 'error');
+      this.showToast('Error deleting production line', 'error');
+    }
+  }
+
+  async deleteItem(item: ProductionItem, event: Event) {
+    event.stopPropagation();
+    
+    if (!this.currentTable) {
+      this.showToast('No production line selected', 'error');
+      return;
+    }
+
+    if (confirm('Are you sure you want to delete this production item?')) {
+      try {
+        if (!this.userId) {
+          this.showToast('You must be logged in', 'error');
+          return;
+        }
+
+        // Delete requisition - now passing 3 arguments: requisitionId, userId, tableId
+        const success = await this.db.deleteRequisition(item.id, this.userId, this.currentTable.id);
+        
+        if (success) {
+          this.productionItems = this.productionItems.filter(i => i.id !== item.id);
+          
+          const newCount = Math.max(0, (this.currentTable.item_count || 0) - 1);
+          await this.db.updateTableItemCount(this.currentTable.id, newCount, this.userId);
+          this.currentTable.item_count = newCount;
+          
+          await this.loadProductionTables();
+          this.applyFilter();
+          
+          this.showToast('Production item deleted successfully', 'success');
+        } else {
+          this.showToast('Failed to delete production item', 'error');
+        }
+      } catch (err) {
+        console.error('Failed to delete item', err);
+        this.showToast('Error deleting production item', 'error');
+      }
     }
   }
 
   async exportData() {
     if (!this.currentTable) {
-      this.showToast('No table selected', 'info');
+      this.showToast('No production line selected', 'info');
       return;
     }
 
@@ -582,19 +620,19 @@ export class Page2Component implements OnInit {
     }
 
     try {
-      this.showToast('Preparing export with raw materials...', 'info');
+      this.showToast('Preparing production requirements export...', 'info');
       
-      const fileName = `${this.currentTable.name.replace(/\s+/g, '_')}_inventory_with_materials_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const fileName = `${this.currentTable.name.replace(/\s+/g, '_')}_production_requirements_${new Date().toISOString().split('T')[0]}.xlsx`;
       
       // Create a new workbook
       const workbook = new ExcelJS.Workbook();
-      workbook.creator = 'Store Management System';
-      workbook.lastModifiedBy = 'Store Management System';
+      workbook.creator = 'Production Management System';
+      workbook.lastModifiedBy = 'Production Management System';
       workbook.created = new Date();
       workbook.modified = new Date();
       
       // Create worksheet
-      const worksheet = workbook.addWorksheet('Store Inventory', {
+      const worksheet = workbook.addWorksheet('Production Requirements', {
         properties: {
           defaultColWidth: 15,
           showGridLines: true
@@ -604,7 +642,7 @@ export class Page2Component implements OnInit {
       // Title
       worksheet.mergeCells('A1:J1');
       const titleRow = worksheet.getRow(1);
-      titleRow.getCell(1).value = `STORE INVENTORY - ${this.currentTable.name}`;
+      titleRow.getCell(1).value = `PRODUCTION REQUIREMENTS - ${this.currentTable.name}`;
       titleRow.getCell(1).font = { name: 'Arial', size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
       titleRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2C3E50' } };
       titleRow.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
@@ -613,7 +651,7 @@ export class Page2Component implements OnInit {
       // Generation info
       worksheet.mergeCells('A2:J2');
       const infoRow = worksheet.getRow(2);
-      infoRow.getCell(1).value = `Store Manager: ${this.userRole} | Generated on: ${new Date().toLocaleString()} | Total Items: ${this.filteredItems.length}`;
+      infoRow.getCell(1).value = `Production Manager: ${this.userRole} | Generated on: ${new Date().toLocaleString()} | Total Items: ${this.filteredItems.length}`;
       infoRow.getCell(1).font = { name: 'Arial', size: 11, italic: true };
       infoRow.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
       infoRow.height = 25;
@@ -623,9 +661,9 @@ export class Page2Component implements OnInit {
         'SKU Code',
         'Item Name',
         'Category',
-        'Stock Qty',
+        'Qty Needed',
         'Supplier',
-        'Materials',
+        'Material',
         'Qty/Batch',
         'Unit',
         'Type',
@@ -668,7 +706,7 @@ export class Page2Component implements OnInit {
             item.sku_code,
             item.sku_name || item.sku_code,
             item.category,
-            item.qty,
+            item.qty_needed,
             item.supplier || '',
             'No materials',
             '',
@@ -686,19 +724,19 @@ export class Page2Component implements OnInit {
               i === 0 ? item.sku_code : '', // Only show SKU on first row of the group
               i === 0 ? (item.sku_name || item.sku_code) : '',
               i === 0 ? item.category : '',
-              i === 0 ? item.qty : '',
+              i === 0 ? item.qty_needed : '',
               i === 0 ? (item.supplier || '') : '',
               mat.raw_material || '',
               mat.quantity_per_batch || '',
               mat.unit || '',
               mat.type || '',
-              this.calculateMaterialTotal(item.qty, mat.quantity_per_batch)
+              this.calculateMaterialTotal(item.qty_needed, mat.quantity_per_batch)
             ]);
             styleDataRow(row);
             
             // Format number cells
             if (i === 0) {
-              row.getCell(4).numFmt = '#,##0'; // Quantity
+              row.getCell(4).numFmt = '#,##0'; // Quantity needed
             }
             row.getCell(7).numFmt = '#,##0.00'; // Qty per batch
             row.getCell(10).numFmt = '#,##0.00'; // Total
@@ -769,7 +807,7 @@ export class Page2Component implements OnInit {
         URL.revokeObjectURL(url);
       }, 100);
       
-      this.showToast(`Exported ${this.filteredItems.length} items with raw materials successfully`, 'success');
+      this.showToast(`Exported ${this.filteredItems.length} production items successfully`, 'success');
     } catch (err) {
       console.error('Export failed', err);
       this.showToast('Error exporting data: ' + (err instanceof Error ? err.message : 'Unknown error'), 'error');
@@ -863,60 +901,6 @@ export class Page2Component implements OnInit {
     if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
       this.currentPage = page;
       this.updatePagination();
-    }
-  }
-
-  getTypeClass(type: string): string {
-    if (!type) return '';
-    const typeMap: { [key: string]: string } = {
-      'conductor': 'type-conductor',
-      'housing': 'type-housing',
-      'electronics': 'type-electronics',
-      'textile': 'type-textile',
-      'sewing': 'type-sewing',
-      'base-material': 'type-base',
-      'printing': 'type-printing',
-      'chemical': 'type-chemical',
-      'binder': 'type-binder'
-    };
-    return typeMap[type.toLowerCase()] || '';
-  }
-
-  async deleteItem(item: InventoryItem, event: Event) {
-    event.stopPropagation();
-    
-    if (!this.currentTable) {
-      this.showToast('No table selected', 'error');
-      return;
-    }
-
-    if (confirm('Are you sure you want to delete this item?')) {
-      try {
-        if (!this.userId) {
-          this.showToast('You must be logged in', 'error');
-          return;
-        }
-
-        const success = await this.db.deleteInventoryItem(item.id, this.userId, this.currentTable.id);
-        
-        if (success) {
-          this.inventoryItems = this.inventoryItems.filter(i => i.id !== item.id);
-          this.applyFilter();
-          
-          const newCount = Math.max(0, (this.currentTable.item_count || 0) - 1);
-          await this.db.updateTableItemCount(this.currentTable.id, newCount, this.userId);
-          this.currentTable.item_count = newCount;
-          
-          await this.loadUserTables();
-          
-          this.showToast('Item deleted successfully', 'success');
-        } else {
-          this.showToast('Failed to delete item', 'error');
-        }
-      } catch (err) {
-        console.error('Failed to delete item', err);
-        this.showToast('Error deleting item', 'error');
-      }
     }
   }
 }

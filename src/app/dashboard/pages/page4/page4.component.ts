@@ -73,6 +73,9 @@ export class Page4Component implements OnInit {
   userRole: string = '';
   userId: string = '';
 
+  // Allowed roles for accessing this page (matches navItems in dashboard)
+  private readonly allowedRoles = ['user', 'store', 'production', 'procurement', 'admin'];
+
   constructor(
     private db: DatabaseService,
     private auth: AuthService,
@@ -90,8 +93,8 @@ export class Page4Component implements OnInit {
       this.userId = user.uid;
       await this.loadUserRole();
       
-      // Check if user has access to usage reports
-      if (this.userRole !== 'production' && this.userRole !== 'admin') {
+      // Check if user has access to usage reports - include all allowed roles
+      if (!this.allowedRoles.includes(this.userRole)) {
         this.showMessage('You do not have access to Usage Reports', 'error');
         this.router.navigate(['/dashboard']);
         return;
@@ -111,9 +114,15 @@ export class Page4Component implements OnInit {
       if (userDoc.exists()) {
         const data = userDoc.data() as any;
         this.userRole = data['role'] || 'user';
+        console.log('User role loaded:', this.userRole);
+      } else {
+        // If no role document, default to 'user'
+        this.userRole = 'user';
+        console.log('No role document found, defaulting to user');
       }
     } catch (error) {
       console.error('Error loading user role:', error);
+      this.userRole = 'user'; // Default to user on error
     }
   }
 
@@ -122,7 +131,6 @@ export class Page4Component implements OnInit {
       const allTables = await this.db.getUserTables(this.userId);
       
       // For production role, filter to show only production-relevant tables
-      // This assumes tables might have production in name or you have a convention
       if (this.userRole === 'production') {
         this.userTables = allTables.filter(table => 
           table.name?.toLowerCase().includes('production') || 
@@ -136,6 +144,7 @@ export class Page4Component implements OnInit {
           this.userTables = allTables;
         }
       } else {
+        // For all other roles (user, store, procurement, admin), show all tables
         this.userTables = allTables;
       }
       

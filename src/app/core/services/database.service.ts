@@ -24,6 +24,8 @@ interface MasterData {
   supplier?: string | null;
   created_at?: Date;
   updated_at?: Date;
+  uploaded_by?: string;
+  uploaded_at?: Date;
 }
 
 interface InventoryItem {
@@ -90,11 +92,17 @@ export class DatabaseService {
   }
 
   // ────────────────────────────────────────────────
-  //  Master Data Upload & Queries
+  //  Master Data Upload & Queries - FIXED VERSION
   // ────────────────────────────────────────────────
 
   async uploadMasterData(file: File): Promise<{ success: boolean; count?: number; error?: string }> {
     try {
+      // First check if user is authenticated
+      const currentUser = await this.auth.getCurrentUserPromise();
+      if (!currentUser) {
+        return { success: false, error: 'You must be logged in to upload master data' };
+      }
+
       const arrayBuffer = await file.arrayBuffer();
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
       const sheetName = workbook.SheetNames[0];
@@ -133,7 +141,10 @@ export class DatabaseService {
           type: String(row[12] || '').trim(),
           supplier: row[13] ? String(row[13]).trim() : null,
           created_at: new Date(),
-          updated_at: new Date()
+          updated_at: new Date(),
+          // Add metadata for security rules if needed
+          uploaded_by: currentUser.uid,
+          uploaded_at: new Date()
         };
 
         const skuCode = docData.sku_code as string;
@@ -152,6 +163,15 @@ export class DatabaseService {
       return { success: true, count: savedCount };
     } catch (err: any) {
       console.error('Master data upload failed', err);
+      
+      // Check for specific Firestore permission error
+      if (err.code === 'permission-denied' || err.message?.includes('permission')) {
+        return { 
+          success: false, 
+          error: 'Missing or insufficient permissions. Please check your Firestore security rules or contact your administrator.' 
+        };
+      }
+      
       return { success: false, error: err.message || 'Unknown error' };
     }
   }
@@ -311,7 +331,7 @@ export class DatabaseService {
   }
 
   // ────────────────────────────────────────────────
-  //  Tables + Requisitions (with user isolation and type)
+  //  Tables + Requisitions (with user isolation and type) - FIXED
   // ────────────────────────────────────────────────
 
   /**
@@ -335,44 +355,88 @@ export class DatabaseService {
   }
 
   /**
-   * Get tables by type for a user
+   * Get tables by type for a user - FIXED with better logging
    * @param userId - The user ID
    * @param type - The table type ('inventory' or 'requisition')
    */
   async getUserTablesByType(userId: string, type: 'inventory' | 'requisition'): Promise<any[]> {
     try {
-      if (!userId) return [];
+      if (!userId) {
+        console.log('No userId provided');
+        return [];
+      }
+      
+      console.log('Fetching tables for user:', userId, 'type:', type);
       
       const q = query(
         collection(this.firestore, 'tables'),
         where('user_id', '==', userId),
         where('type', '==', type)
       );
+      
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log('Found tables count:', snapshot.size);
+      
+      const tables = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          id: doc.id, 
+          ...data 
+        };
+      });
+      
+      console.log('Tables:', tables);
+      return tables;
     } catch (err) {
-      console.error('getUserTablesByType failed', err);
+      console.error('getUserTablesByType failed:', err);
       return [];
     }
   }
 
   /**
-   * Create a new user table with type
+   * Create a new user table with type - FIXED with actual Firebase write
    * @param data - Table data (name, user_id)
    * @param type - Table type ('inventory' or 'requisition')
    */
   async createUserTable(data: any, type: 'inventory' | 'requisition'): Promise<{ success: boolean; tableId?: string }> {
     try {
-      const docRef = await addDoc(collection(this.firestore, 'tables'), {
-        ...data,
-        type,
+      console.log('Creating table with data:', data, 'type:', type);
+      
+      // Get current user to ensure we have proper auth
+      const currentUser = await this.auth.getCurrentUserPromise();
+      if (!currentUser) {
+        console.error('No authenticated user');
+        return { success: false };
+      }
+
+      // Ensure user_id matches authenticated user
+      if (data.user_id !== currentUser.uid) {
+        console.error('User ID mismatch');
+        return { success: false };
+      }
+
+      const tableData = {
+        name: data.name,
+        user_id: data.user_id,
+        type: type,
         item_count: 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
-      });
+      };
+
+      console.log('Saving table to Firebase:', tableData);
+      
+      // Get reference to tables collection
+      const tablesRef = collection(this.firestore, 'tables');
+      
+      // Add the document to Firebase
+      const docRef = await addDoc(tablesRef, tableData);
+      
+      console.log('Table created successfully with ID:', docRef.id);
+      
       return { success: true, tableId: docRef.id };
     } catch (err) {
-      console.error('createUserTable failed', err);
+      console.error('createUserTable failed:', err);
       return { success: false };
     }
   }

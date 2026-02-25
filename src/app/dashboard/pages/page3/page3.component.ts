@@ -161,6 +161,10 @@ export class Page3Component implements OnInit {
       this.userId = user.uid;
       await this.loadUserRole();
       
+      // Test Firebase connection
+      const connected = await this.testFirebaseConnection();
+      console.log('Firebase connected:', connected);
+      
       // Check if user has procurement access
       if (this.userRole !== 'procurement' && this.userRole !== 'admin' && this.userRole !== 'user') {
         this.showToast('You do not have access to Requisitions', 'error');
@@ -173,6 +177,20 @@ export class Page3Component implements OnInit {
     } else {
       this.showToast('Please log in to continue', 'error');
       this.router.navigate(['/login']);
+    }
+  }
+
+  // Add this method to test Firebase connection
+  async testFirebaseConnection(): Promise<boolean> {
+    try {
+      console.log('Testing Firebase connection...');
+      const testRef = collection(this.firestore, 'tables');
+      const snapshot = await getDocs(query(testRef, where('user_id', '==', this.userId)));
+      console.log('Firebase connection successful. Found', snapshot.size, 'tables');
+      return true;
+    } catch (err) {
+      console.error('Firebase connection failed:', err);
+      return false;
     }
   }
 
@@ -208,6 +226,8 @@ export class Page3Component implements OnInit {
     }
 
     try {
+      console.log('Loading user tables for user:', this.userId);
+      
       // Production: only sees store submissions (no own tables)
       if (this.userRole === 'production') {
         this.viewMode = 'store_submissions';
@@ -226,6 +246,8 @@ export class Page3Component implements OnInit {
       this.viewMode = 'my_tables';
       this.tables = await this.db.getUserTablesByType(this.userId, 'requisition');
       
+      console.log('Loaded tables:', this.tables);
+      
       const lastTableId = localStorage.getItem(`lastSelectedRequisitionTable_${this.userId}`);
       if (lastTableId && this.tables.some(t => t.id === lastTableId)) {
         this.selectedTableId = lastTableId;
@@ -238,7 +260,7 @@ export class Page3Component implements OnInit {
       }
     } catch (err) {
       console.error('Failed to load tables:', err);
-      this.showToast('Failed to load tables', 'error');
+      this.showToast('Failed to load tables: ' + (err as Error).message, 'error');
     }
   }
 
@@ -297,6 +319,26 @@ export class Page3Component implements OnInit {
     // Update selected table
     this.selectedTable = this.tables.find(t => t.id === this.selectedTableId) || null;
     console.log('Selected table:', this.selectedTable);
+    
+    if (!this.selectedTable) {
+      console.warn('Selected table not found in tables list, trying to load from Firebase directly');
+      // Try to load the table directly from Firebase
+      try {
+        const tableData = await this.db.getTableById(this.selectedTableId);
+        if (tableData) {
+          this.selectedTable = {
+            id: tableData.id,
+            name: tableData.name,
+            user_id: this.userId,
+            type: 'requisition',
+            item_count: 0
+          };
+          console.log('Loaded table from Firebase:', this.selectedTable);
+        }
+      } catch (err) {
+        console.error('Failed to load table directly:', err);
+      }
+    }
     
     // Load requisitions for selected table
     await this.loadRequisitions();
@@ -388,16 +430,16 @@ export class Page3Component implements OnInit {
         this.importStatus = 'success';
         this.importMessage = `Imported ${result.count} rows`;
         await this.loadCategories();
-        this.showToast('Master data imported', 'success');
+        this.showToast('Master data imported successfully', 'success');
       } else {
         this.importStatus = 'error';
         this.importMessage = result.error || 'Upload failed';
-        this.showToast('Upload failed', 'error');
+        this.showToast(result.error || 'Upload failed', 'error');
       }
     } catch (err) {
       this.importStatus = 'error';
       this.importMessage = 'Upload error';
-      this.showToast('Upload error', 'error');
+      this.showToast('Upload error: ' + (err as Error).message, 'error');
     }
   }
 
@@ -963,12 +1005,18 @@ export class Page3Component implements OnInit {
   }
 
   async createTable() {
-    if (!this.newTableName.trim()) return;
+    if (!this.newTableName.trim()) {
+      this.showToast('Please enter a table name', 'error');
+      return;
+    }
     
     if (!this.userId) {
       this.showToast('You must be logged in', 'error');
       return;
     }
+
+    this.isSubmitting = true;
+    console.log('Creating table with name:', this.newTableName.trim(), 'for user:', this.userId);
 
     try {
       // Create table with type 'requisition'
@@ -976,6 +1024,8 @@ export class Page3Component implements OnInit {
         name: this.newTableName.trim(),
         user_id: this.userId
       }, 'requisition');
+
+      console.log('Create table result:', result);
 
       if (result.success && result.tableId) {
         // Add new table to list
@@ -995,12 +1045,19 @@ export class Page3Component implements OnInit {
         this.newTableName = '';
         this.closeTableModal();
         this.showToast('Table created successfully', 'success');
+        
+        // Force reload tables to verify
+        setTimeout(async () => {
+          await this.loadUserTables();
+        }, 1000);
       } else {
-        this.showToast('Failed to create table', 'error');
+        this.showToast('Failed to create table - no table ID returned', 'error');
       }
     } catch (err) {
       console.error('Create table error:', err);
-      this.showToast('Failed to create table', 'error');
+      this.showToast('Failed to create table: ' + (err as Error).message, 'error');
+    } finally {
+      this.isSubmitting = false;
     }
   }
 

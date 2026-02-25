@@ -17,12 +17,6 @@ export const routes: Routes = [
         data: { roles: ['user', 'store', 'production', 'procurement', 'admin'] }
       },
       { 
-        path: 'store', 
-        loadComponent: () => import('./dashboard/pages/page2/page2.component').then(m => m.Page2Component),
-        canActivate: [RoleGuard],
-        data: { roles: ['user', 'store', 'production', 'procurement', 'admin'] }
-      },
-      { 
         path: 'production', 
         loadComponent: () => import('./dashboard/pages/page2/page2.component').then(m => m.Page2Component),
         canActivate: [RoleGuard],
@@ -40,27 +34,30 @@ export const routes: Routes = [
         canActivate: [RoleGuard],
         data: { roles: ['user', 'store', 'production', 'procurement', 'admin'] }
       },
+      // Redirect old routes to new ones
       { 
-        path: 'users', 
-        loadComponent: () => import('./dashboard/pages/users/users.component').then(m => m.UsersComponent),
-        canActivate: [RoleGuard],
-        data: { roles: ['admin'] }
+        path: 'store', 
+        redirectTo: '/dashboard', 
+        pathMatch: 'full' 
       },
-      // Keep old routes for backward compatibility
       { 
         path: 'daily-production', 
-        loadComponent: () => import('./dashboard/pages/page2/page2.component').then(m => m.Page2Component),
-        canActivate: [RoleGuard],
-        data: { roles: ['user', 'store', 'production', 'procurement', 'admin'] }
+        redirectTo: '/dashboard/production', 
+        pathMatch: 'full' 
       },
       { 
         path: 'material-requisition', 
-        loadComponent: () => import('./dashboard/pages/page3/page3.component').then(m => m.Page3Component),
-        canActivate: [RoleGuard],
-        data: { roles: ['user', 'store', 'production', 'procurement', 'admin'] }
+        redirectTo: '/dashboard/procurement', 
+        pathMatch: 'full' 
+      },
+      // Legacy users route - redirect to dashboard
+      { 
+        path: 'users', 
+        redirectTo: '/dashboard', 
+        pathMatch: 'full' 
       },
     ],
   },
-  { path: 'home', redirectTo: 'dashboard', pathMatch: 'full' },
+  { path: 'home', redirectTo: '/dashboard', pathMatch: 'full' },
   { path: '**', redirectTo: '' },
 ];

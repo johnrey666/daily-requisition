@@ -4,7 +4,7 @@
     <span class="role-badge" [class]="'role-' + userRole">
       {{ userRole | titlecase }} Access
     </span>
-    <span class="role-description">Store Inventory Management</span>
+    <span class="role-description">Production Management - Track material requirements</span>
   </div>
 
   <!-- Snackbar -->
@@ -16,8 +16,8 @@
   <!-- Header -->
   <div class="page-header">
     <div class="header-title">
-      <h1>Store Inventory Management</h1>
-      <span class="subtitle">Track inventory items and stock levels</span>
+      <h1>Production Material Requirements</h1>
+      <span class="subtitle">Track raw material requirements for production batches</span>
     </div>
     <div class="header-actions">
       <!-- Tables Dropdown - Shows current table name when selected -->
@@ -28,14 +28,14 @@
             <line x1="3" y1="9" x2="21" y2="9"/>
             <line x1="9" y1="21" x2="9" y2="9"/>
           </svg>
-          <!-- Show current table name if selected, otherwise show "Manage Tables" -->
-          {{ currentTable ? currentTable.name : 'Manage Store Tables' }}
+          <!-- Show current table name if selected, otherwise show "Manage Production Lines" -->
+          {{ currentTable ? currentTable.name : 'Manage Production Lines' }}
         </button>
         
         <div class="dropdown-menu" *ngIf="showTableDropdown">
           <div class="dropdown-header">
-            <span>Your Store Tables</span>
-            <button class="btn-icon" (click)="createNewTable()" title="New Table">
+            <span>Your Production Lines</span>
+            <button class="btn-icon" (click)="createNewTable()" title="New Production Line">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M12 5v14M5 12h14"/>
               </svg>
@@ -43,7 +43,7 @@
           </div>
           
           <div class="dropdown-list">
-            <div *ngFor="let table of userTables" 
+            <div *ngFor="let table of productionTables" 
                  class="dropdown-item" 
                  [class.active]="currentTable?.id === table.id"
                  (click)="selectTable(table)">
@@ -51,17 +51,17 @@
               <span class="count">{{ table.item_count || 0 }}</span>
             </div>
             
-            <div *ngIf="userTables.length === 0" class="dropdown-empty">
-              <p>No store tables yet</p>
+            <div *ngIf="productionTables.length === 0" class="dropdown-empty">
+              <p>No production lines yet</p>
               <button class="btn-link" (click)="createNewTable()">Create one</button>
             </div>
           </div>
           
-          <div class="dropdown-footer" *ngIf="userTables.length > 0" (click)="createNewTable()">
+          <div class="dropdown-footer" *ngIf="productionTables.length > 0" (click)="createNewTable()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M12 5v14M5 12h14"/>
             </svg>
-            Create New Store Table
+            Create New Production Line
           </div>
         </div>
       </div>
@@ -73,7 +73,7 @@
           <polyline points="8 12 12 16 16 12"/>
           <line x1="12" y1="2" x2="12" y2="16"/>
         </svg>
-        Export Stock Report
+        Export Requirements
       </button>
     </div>
   </div>
@@ -86,7 +86,7 @@
         <line x1="3" y1="9" x2="21" y2="9"/>
         <line x1="9" y1="21" x2="9" y2="9"/>
       </svg>
-      <span>Master Data (Product Catalog)</span>
+      <span>Master Data (Product Catalog & BOM)</span>
     </div>
     <div class="import-body">
       <input type="file" accept=".xlsx,.xls" (change)="onFileSelected($event)" [disabled]="uploadingMaster" hidden #fileInput>
@@ -96,7 +96,7 @@
           <polyline points="8 12 12 16 16 12"/>
           <line x1="12" y1="2" x2="12" y2="16"/>
         </svg>
-        {{ uploadingMaster ? 'Uploading...' : 'Upload Product Catalog' }}
+        {{ uploadingMaster ? 'Uploading...' : 'Upload Product Catalog & BOM' }}
       </button>
       <span class="import-status" [class.success]="uploadStatus.includes('Success')" [class.error]="uploadStatus.includes('Error')">
         {{ uploadStatus || 'No file selected' }}
@@ -115,13 +115,13 @@
         <line x1="3" y1="9" x2="21" y2="9"/>
         <line x1="9" y1="21" x2="9" y2="9"/>
       </svg>
-      <h3>No Store Table Selected</h3>
-      <p>You need to create or select a store table before managing inventory.</p>
+      <h3>No Production Line Selected</h3>
+      <p>You need to create or select a production line before adding requirements.</p>
       <button class="btn btn-primary" (click)="createNewTable()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
           <path d="M12 5v14M5 12h14"/>
         </svg>
-        Create Your First Store Table
+        Create Your First Production Line
       </button>
     </div>
   </div>
@@ -130,8 +130,8 @@
   <div class="card" *ngIf="currentTable">
     <div class="card-header">
       <div>
-        <h3>Add Stock to "{{ currentTable.name }}"</h3>
-        <span class="field-hint">Add new inventory items to current store table</span>
+        <h3>Add Production Requirement to "{{ currentTable.name }}"</h3>
+        <span class="field-hint">Add products to produce and their material requirements</span>
       </div>
     </div>
     <div class="card-body">
@@ -153,8 +153,8 @@
         </div>
 
         <div class="field">
-          <label>SKU Code</label>
-          <div class="field-value">{{ newItem.sku_code || '—' }}</div>
+          <label>SKU Name</label>
+          <div class="field-value">{{ newItem.sku_name || '—' }}</div>
         </div>
 
         <div class="field">
@@ -163,8 +163,8 @@
         </div>
 
         <div class="field">
-          <label>Stock Quantity</label>
-          <input [(ngModel)]="newItem.qty" placeholder="0" type="number" min="1" (input)="onQuantityChange()">
+          <label>Quantity Needed</label>
+          <input [(ngModel)]="newItem.qty_needed" placeholder="0" type="number" min="1">
         </div>
 
         <div class="field">
@@ -176,7 +176,7 @@
             <svg *ngIf="!addingItem" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M12 5v14M5 12h14"/>
             </svg>
-            <span>{{ addingItem ? 'Adding...' : 'Add to Stock' }}</span>
+            <span>{{ addingItem ? 'Adding...' : 'Add to Production' }}</span>
           </button>
         </div>
       </div>
@@ -221,14 +221,14 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <rect x="3" y="3" width="18" height="18" rx="2"/>
             </svg>
-            {{ filteredItems.length }} items
+            {{ filteredItems.length }} production items
           </span>
           <span class="stat">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <line x1="12" y1="19" x2="12" y2="5"/>
               <polyline points="5 12 12 5 19 12"/>
             </svg>
-            {{ totalQuantity | number:'1.0-0' }} total units
+            {{ totalQuantity | number:'1.0-0' }} total units to produce
           </span>
         </div>
       </div>
@@ -252,12 +252,12 @@
     </div>
   </div>
 
-  <!-- Inventory Table -->
+  <!-- Production Items Table -->
   <div class="card" *ngIf="currentTable">
     <div class="card-header">
       <div>
-        <h3>Stock Inventory</h3>
-        <span class="field-hint">{{ currentTable.name }} • {{ filteredItems.length }} items • {{ totalQuantity | number }} total units</span>
+        <h3>Production Requirements</h3>
+        <span class="field-hint">{{ currentTable.name }} • {{ filteredItems.length }} items • {{ totalQuantity | number }} total units to produce</span>
       </div>
     </div>
 
@@ -269,7 +269,7 @@
             <th>SKU Code</th>
             <th>Item Name</th>
             <th>Category</th>
-            <th>Stock Qty</th>
+            <th>Qty Needed</th>
             <th>Supplier</th>
             <th>Materials</th>
             <th></th>
@@ -288,7 +288,7 @@
               <td><span class="sku-code">{{ item.sku_code }}</span></td>
               <td class="limit">{{ item.sku_name || item.sku_code }}</td>
               <td><span class="badge">{{ item.category }}</span></td>
-              <td class="number">{{ item.qty | number }}</td>
+              <td class="number">{{ item.qty_needed | number }}</td>
               <td class="limit">{{ item.supplier || '—' }}</td>
               <td>
                 <span class="material-count" [class.has]="(item.materialCount ?? 0) > 0">
@@ -319,7 +319,7 @@
                   <div *ngIf="!loadingMaterials[item.id] && item.materials?.length">
                     <div class="expanded-header">
                       <h4>Raw Materials for {{ item.sku_code }}</h4>
-                      <span class="material-note">Based on current stock: {{ item.qty | number }} units</span>
+                      <span class="material-note">Based on production quantity: {{ item.qty_needed | number }} units</span>
                     </div>
                     
                     <div class="materials-grid">
@@ -339,7 +339,7 @@
                             <td class="number">{{ mat.quantity_per_batch ?? '—' }}</td>
                             <td><span class="badge">{{ mat.unit || '—' }}</span></td>
                             <td><span class="badge" [class.badge-material]="mat.type">{{ mat.type || 'N/A' }}</span></td>
-                            <td class="number primary">{{ calculateMaterialTotal(item.qty, mat.quantity_per_batch) | number:'1.2-2' }}</td>
+                            <td class="number primary">{{ calculateMaterialTotal(item.qty_needed, mat.quantity_per_batch) | number:'1.2-2' }}</td>
                           </tr>
                         </tbody>
                       </table>
@@ -367,8 +367,8 @@
                   <line x1="3" y1="9" x2="21" y2="9"/>
                   <line x1="9" y1="21" x2="9" y2="9"/>
                 </svg>
-                <h4>No items found</h4>
-                <p>{{ searchQuery || filterCategory ? 'Try adjusting your filters' : 'Add your first item to this store table' }}</p>
+                <h4>No production items found</h4>
+                <p>{{ searchQuery || filterCategory ? 'Try adjusting your filters' : 'Add your first production item to this line' }}</p>
               </div>
             </td>
           </tr>
