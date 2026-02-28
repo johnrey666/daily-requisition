@@ -931,7 +931,6 @@ export class DatabaseService {
       return allRequisitions;
     } catch (err) {
       console.error('getRequisitionsNeedingAction failed', err);
-      
       return [];
     }
   }

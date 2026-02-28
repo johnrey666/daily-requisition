@@ -370,6 +370,7 @@ export class Page3Component implements OnInit {
         const q = query(
           requisitionsRef,
           where('table_id', '==', this.selectedTableId),
+          where('user_id', '==', this.userId),
           orderBy('created_at', 'desc')
         );
         return getDocs(q);
