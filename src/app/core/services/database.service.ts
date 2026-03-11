@@ -1,11 +1,19 @@
-// src/app/core/services/database.service.ts
 import { Injectable, Injector, runInInjectionContext } from '@angular/core';
 import {
-  Firestore, collection, addDoc, query, where, doc, getDoc,
-  updateDoc, deleteDoc, writeBatch, orderBy, getDocs
+  Firestore,
+  collection,
+  addDoc,
+  query,
+  where,
+  doc,
+  getDoc,
+  updateDoc,
+  deleteDoc,
+  writeBatch,
+  orderBy,
+  getDocs
 } from '@angular/fire/firestore';
 import { AuthService } from './auth.service';
-import { User } from '../models/database.model';
 import * as XLSX from 'xlsx';
 
 interface MasterData {
@@ -61,37 +69,35 @@ export class DatabaseService {
     private injector: Injector
   ) {}
 
-  // ────────────────────────────────────────────────
-  //  PRIVATE HELPER — run any Firestore call safely
-  // ────────────────────────────────────────────────
   private run<T>(fn: () => Promise<T>): Promise<T> {
     return runInInjectionContext(this.injector, fn);
   }
 
-  // ────────────────────────────────────────────────
-  //  HELPER - normalize SKU code (very aggressive cleaning)
-  // ────────────────────────────────────────────────
-  private normalizeSkuCode(sku: any): string {
-    if (!sku) return '';
+  normalizeSkuCode(sku: any): string {
+    if (!sku && sku !== 0) return '';
 
-    let cleaned = String(sku).trim();
+    let s = String(sku).trim();
+    
+    // Log the original for debugging
+    console.log('Normalizing SKU:', { original: s });
 
-    // Remove all whitespace (including non-breaking spaces, tabs, etc.)
-    cleaned = cleaned.replace(/\s+/g, '');
+    // Remove ONLY leading/trailing whitespace, keep internal spaces if they exist
+    s = s.trim();
 
-    // Remove any non-alphanumeric characters except hyphen and underscore
-    cleaned = cleaned.replace(/[^a-zA-Z0-9\-_]/g, '');
+    // If it's a number-like string, keep it as is
+    if (/^\d+$/.test(s)) {
+      console.log('SKU is numeric, keeping as:', s);
+      return s;
+    }
 
-    // Optional: if you want case-insensitive matching → uncomment next line
-    // cleaned = cleaned.toUpperCase();
-
-    return cleaned;
+    // For non-numeric SKUs, normalize to uppercase but keep original format
+    s = s.toUpperCase();
+    
+    console.log('Normalized SKU result:', s);
+    return s;
   }
 
-  // ────────────────────────────────────────────────
-  //  User
-  // ────────────────────────────────────────────────
-  async getCurrentUser(): Promise<User | null> {
+  async getCurrentUser(): Promise<any | null> {
     try {
       const authUser = await this.auth.getCurrentUserPromise();
       if (!authUser) return null;
@@ -114,16 +120,13 @@ export class DatabaseService {
       return {
         id: authUser.uid,
         email: authUser.email || undefined
-      } as User;
+      };
     } catch (err) {
       console.error('getCurrentUser failed', err);
       return null;
     }
   }
 
-  // ────────────────────────────────────────────────
-  //  Master Data Upload & Queries
-  // ────────────────────────────────────────────────
   async uploadMasterData(file: File): Promise<{ success: boolean; count?: number; error?: string }> {
     try {
       const currentUser = await this.auth.getCurrentUserPromise();
@@ -150,7 +153,6 @@ export class DatabaseService {
             continue;
           }
 
-          // Clean SKU code aggressively
           const skuCode = this.normalizeSkuCode(row[0]);
 
           if (!skuCode) continue;
@@ -176,7 +178,7 @@ export class DatabaseService {
             uploaded_at: new Date()
           };
 
-          const rawMaterial = docData.raw_material || 'no-material';
+          const rawMaterial = (docData.raw_material || 'no-material').trim();
           const docId = `${skuCode}_${rawMaterial}`
             .replace(/[^a-zA-Z0-9_-]/g, '_')
             .substring(0, 1500);
@@ -206,13 +208,9 @@ export class DatabaseService {
 
   async getUniqueCategories(): Promise<string[]> {
     try {
-      console.log('Fetching unique categories from masterData...');
-
       const snapshot = await this.run(() =>
         getDocs(collection(this.firestore, 'masterData'))
       );
-
-      console.log('Found', snapshot.size, 'master data documents');
 
       const cats = new Set<string>();
       snapshot.forEach(doc => {
@@ -221,9 +219,7 @@ export class DatabaseService {
         if (category) cats.add(category);
       });
 
-      const result = Array.from(cats).sort();
-      console.log('Unique categories:', result);
-      return result;
+      return Array.from(cats).sort();
     } catch (err) {
       console.error('getUniqueCategories failed', err);
       return [];
@@ -234,15 +230,11 @@ export class DatabaseService {
     if (!category?.trim()) return [];
 
     try {
-      console.log('Fetching SKUs for category:', category);
-
       const snapshot = await this.run(() => {
         const masterDataRef = collection(this.firestore, 'masterData');
         const q = query(masterDataRef, where('category', '==', category));
         return getDocs(q);
       });
-
-      console.log('Found', snapshot.size, 'SKUs for category');
 
       const map = new Map<string, string>();
       snapshot.forEach(doc => {
@@ -251,13 +243,10 @@ export class DatabaseService {
         const name = (data.sku_name || '').trim();
         if (code && name) {
           map.set(code, name);
-          console.log('Found SKU:', { code, name });
         }
       });
 
-      const result = Array.from(map, ([sku_code, sku_name]) => ({ sku_code, sku_name }));
-      console.log('SKUs for category:', result);
-      return result;
+      return Array.from(map, ([sku_code, sku_name]) => ({ sku_code, sku_name }));
     } catch (err) {
       console.error('getSkusByCategory failed', err);
       return [];
@@ -266,14 +255,14 @@ export class DatabaseService {
 
   async getMaterialsForSku(skuCode: string): Promise<any[]> {
     if (!skuCode?.toString().trim()) {
-      console.warn('getMaterialsForSku called with empty SKU');
       return [];
     }
 
     const cleanSku = this.normalizeSkuCode(skuCode);
-    console.log(`[MATERIALS] Searching for normalized SKU → "${cleanSku}"`);
+    console.log('getMaterialsForSku - Input:', skuCode, 'Normalized:', cleanSku);
 
     try {
+      // Try exact match first
       const snapshot = await this.run(() => {
         const q = query(
           collection(this.firestore, 'masterData'),
@@ -281,8 +270,6 @@ export class DatabaseService {
         );
         return getDocs(q);
       });
-
-      console.log(`[MATERIALS] Found ${snapshot.size} documents for "${cleanSku}"`);
 
       const materials: any[] = [];
       snapshot.forEach(d => {
@@ -297,16 +284,38 @@ export class DatabaseService {
         }
       });
 
+      // If no materials found, try without normalization
+      if (materials.length === 0) {
+        console.log('No materials found with normalized SKU, trying original format');
+        const originalSnapshot = await this.run(() => {
+          const q = query(
+            collection(this.firestore, 'masterData'),
+            where('sku_code', '==', skuCode)
+          );
+          return getDocs(q);
+        });
+        
+        originalSnapshot.forEach(d => {
+          const data = d.data() as MasterData;
+          if (data.raw_material?.trim()) {
+            materials.push({
+              raw_material: data.raw_material.trim(),
+              quantity_per_batch: data.qty_per_batch ?? null,
+              unit: (data.batch_unit || '').trim(),
+              type: (data.type || '').trim()
+            });
+          }
+        });
+      }
+
+      console.log(`Found ${materials.length} materials for SKU ${skuCode}`);
       return materials;
     } catch (err) {
-      console.error('[MATERIALS] Query failed for SKU:', cleanSku, err);
+      console.error('getMaterialsForSku failed', cleanSku, err);
       return [];
     }
   }
 
-  // ────────────────────────────────────────────────
-  //  Inventory
-  // ────────────────────────────────────────────────
   async addInventoryItem(item: InventoryItem): Promise<{ success: boolean; id?: string }> {
     try {
       const docRef = await this.run(() =>
@@ -352,7 +361,6 @@ export class DatabaseService {
 
       const itemData = itemDoc.data() as InventoryItem;
       if (itemData.user_id !== userId || itemData.table_id !== tableId) {
-        console.error('Unauthorized delete attempt');
         return false;
       }
 
@@ -381,9 +389,6 @@ export class DatabaseService {
     }
   }
 
-  // ────────────────────────────────────────────────
-  //  Tables
-  // ────────────────────────────────────────────────
   async getUserTables(userId: string): Promise<any[]> {
     try {
       if (!userId) return [];
@@ -405,12 +410,7 @@ export class DatabaseService {
 
   async getUserTablesByType(userId: string, type: 'inventory' | 'requisition' | 'production'): Promise<any[]> {
     try {
-      if (!userId) {
-        console.log('No userId provided');
-        return [];
-      }
-
-      console.log('Fetching tables for user:', userId, 'type:', type);
+      if (!userId) return [];
 
       const snapshot = await this.run(() => {
         const q = query(
@@ -421,13 +421,9 @@ export class DatabaseService {
         return getDocs(q);
       });
 
-      console.log('Found tables count:', snapshot.size);
-
-      const tables = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      console.log('Tables:', tables);
-      return tables;
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (err) {
-      console.error('getUserTablesByType failed:', err);
+      console.error('getUserTablesByType failed', err);
       return [];
     }
   }
@@ -437,16 +433,12 @@ export class DatabaseService {
     type: 'inventory' | 'requisition' | 'production'
   ): Promise<{ success: boolean; tableId?: string }> {
     try {
-      console.log('Creating table with data:', data, 'type:', type);
-
       const currentUser = await this.auth.getCurrentUserPromise();
       if (!currentUser) {
-        console.error('No authenticated user');
         return { success: false };
       }
 
       if (data.user_id !== currentUser.uid) {
-        console.error('User ID mismatch');
         return { success: false };
       }
 
@@ -459,16 +451,13 @@ export class DatabaseService {
         updated_at: new Date().toISOString()
       };
 
-      console.log('Saving table to Firebase:', tableData);
-
       const docRef = await this.run(() =>
         addDoc(collection(this.firestore, 'tables'), tableData)
       );
 
-      console.log('Table created successfully with ID:', docRef.id);
       return { success: true, tableId: docRef.id };
     } catch (err) {
-      console.error('createUserTable failed:', err);
+      console.error('createUserTable failed', err);
       return { success: false };
     }
   }
@@ -499,7 +488,6 @@ export class DatabaseService {
 
       const tableData = tableDoc.data();
       if (tableData['user_id'] !== userId) {
-        console.error('Unauthorized rename attempt');
         return false;
       }
 
@@ -525,7 +513,6 @@ export class DatabaseService {
 
       const tableData = tableDoc.data();
       if (tableData['user_id'] !== userId) {
-        console.error('Unauthorized delete attempt');
         return false;
       }
 
@@ -561,17 +548,9 @@ export class DatabaseService {
     }
   }
 
-  // ────────────────────────────────────────────────
-  //  Requisitions
-  // ────────────────────────────────────────────────
   async getTableRequisitions(tableId: string, userId: string): Promise<any[]> {
     try {
-      if (!tableId || !userId) {
-        console.log('Missing tableId or userId:', { tableId, userId });
-        return [];
-      }
-
-      console.log('Fetching requisitions for table:', tableId, 'user:', userId);
+      if (!tableId || !userId) return [];
 
       const snapshot = await this.run(() => {
         const q = query(
@@ -583,18 +562,15 @@ export class DatabaseService {
         return getDocs(q);
       });
 
-      console.log('Found requisitions count:', snapshot.size);
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (err) {
-      console.error('getTableRequisitions failed:', err);
+      console.error('getTableRequisitions failed', err);
       return [];
     }
   }
 
   async createRequisition(data: any, materials: any[]): Promise<{ success: boolean; id?: string }> {
     try {
-      console.log('Creating requisition with data:', data);
-
       const requisitionData = {
         ...data,
         materials: materials || [],
@@ -607,10 +583,9 @@ export class DatabaseService {
         addDoc(collection(this.firestore, 'requisitions'), requisitionData)
       );
 
-      console.log('Requisition created with ID:', docRef.id);
       return { success: true, id: docRef.id };
     } catch (err) {
-      console.error('createRequisition failed:', err);
+      console.error('createRequisition failed', err);
       return { success: false };
     }
   }
@@ -624,7 +599,6 @@ export class DatabaseService {
 
       const reqData = reqDoc.data();
       if (reqData['user_id'] !== userId || reqData['table_id'] !== tableId) {
-        console.error('Unauthorized update attempt');
         return false;
       }
 
@@ -659,10 +633,7 @@ export class DatabaseService {
 
       const reqData = reqDoc.data();
 
-      // Allow update if user owns it OR is acting in a role capacity (production/procurement)
-      // The security rules enforce this server-side; client-side we just check it's not completely wrong
       if (reqData['user_id'] !== userId && reqData['table_id'] !== tableId) {
-        console.error('Unauthorized status update attempt');
         return false;
       }
 
@@ -705,7 +676,6 @@ export class DatabaseService {
           break;
       }
 
-      console.log('Updating requisition with data:', updateData);
       await this.run(() => updateDoc(reqRef, updateData));
       return true;
     } catch (err) {
@@ -723,7 +693,6 @@ export class DatabaseService {
 
       const reqData = reqDoc.data();
       if (reqData['user_id'] !== userId || reqData['table_id'] !== tableId) {
-        console.error('Unauthorized update attempt');
         return false;
       }
 
@@ -749,7 +718,6 @@ export class DatabaseService {
 
       const reqData = reqDoc.data();
       if (reqData['user_id'] !== userId || reqData['table_id'] !== tableId) {
-        console.error('Unauthorized update attempt');
         return false;
       }
 
@@ -775,7 +743,6 @@ export class DatabaseService {
 
       const reqData = reqDoc.data();
       if (reqData['user_id'] !== userId || reqData['table_id'] !== tableId) {
-        console.error('Unauthorized delete attempt');
         return false;
       }
 
@@ -796,7 +763,6 @@ export class DatabaseService {
 
       const tableData = tableDoc.data();
       if (tableData['user_id'] !== userId) {
-        console.error('Unauthorized update attempt');
         return false;
       }
 
@@ -878,7 +844,7 @@ export class DatabaseService {
 
       return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (err) {
-      console.error('getAllRequisitionsByStatus failed:', err);
+      console.error('getAllRequisitionsByStatus failed', err);
       return [];
     }
   }

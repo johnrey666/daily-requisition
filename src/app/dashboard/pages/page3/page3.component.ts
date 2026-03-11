@@ -1,4 +1,3 @@
-// src/app/dashboard/pages/page3/page3.component.ts
 import { Component, OnInit, HostListener, Injector } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -84,34 +83,27 @@ interface SkuOption {
 })
 export class Page3Component implements OnInit {
 
-  // Master Data
   categories: string[] = [];
   availableSkus: SkuOption[] = [];
 
-  // Tables
   tables: Table[] = [];
   selectedTableId: string = '';
   selectedTable: Table | null = null;
   showTableDropdown = false;
 
-  // Requisitions
   requisitions: Requisition[] = [];
   filteredRequisitions: Requisition[] = [];
   paginatedRequisitions: Requisition[] = [];
 
-  // Production views
   productionSubmissions: Requisition[] = [];
   productionReviewed: Requisition[] = [];
   selectedProductionView: 'submissions' | 'reviewed' = 'submissions';
 
-  // Procurement view
   procurementReviewed: Requisition[] = [];
 
-  // Expanded rows for materials
   expandedRows: { [id: string]: boolean } = {};
   loadingMaterials: { [id: string]: boolean } = {};
 
-  // UI State
   showModal = false;
   showTableModal = false;
   showScheduleModal = false;
@@ -127,7 +119,6 @@ export class Page3Component implements OnInit {
   isSubmitting = false;
   today = new Date().toISOString().split('T')[0];
 
-  // Form Data
   formData: any = {
     type: '',
     category: '',
@@ -142,52 +133,42 @@ export class Page3Component implements OnInit {
     remarks: ''
   };
 
-  // Schedule Data
   selectedRequisition: Requisition | null = null;
   scheduledDate: string = '';
   scheduledTime: string = '';
 
-  // Approval Data
   approvalNotes: string = '';
   rejectionReason: string = '';
   missingMaterialsNotes: string = '';
 
-  // Production Action Data
   productionActionType: 'confirm' | 'remove' = 'confirm';
   productionActionNotes: string = '';
 
-  // Editing
   editingRequisition: Requisition | null = null;
   editingTable: Table | null = null;
   newTableName: string = '';
   editTableName: string = '';
 
-  // Selected SKU Code
   selectedSkuCode: string = '';
 
-  // Filter & Pagination
   searchQuery = '';
   filterStatus = '';
   currentPage = 1;
   pageSize = 10;
   totalPages = 1;
 
-  // Snackbar
   showSnackbar = false;
   snackbarMessage = '';
   snackbarType: 'success' | 'error' | 'info' = 'info';
   snackbarTimeout: any;
 
-  // Import
   importStatus: 'idle' | 'loading' | 'success' | 'error' = 'idle';
   importMessage = '';
   selectedFileName = '';
 
-  // User Role
   userRole: string = '';
   userId: string = '';
 
-  // Table names for cross-user views
   tableNameMap: { [tableId: string]: string } = {};
 
   Math = Math;
@@ -207,38 +188,45 @@ export class Page3Component implements OnInit {
   }
 
   async ngOnInit() {
-    console.log('Page3Component initialized');
     const user = await this.auth.getCurrentUserPromise();
-    console.log('Current user:', user);
 
     if (user) {
       this.userId = user.uid;
-      console.log('User ID set:', this.userId);
-
       await this.loadUserRole();
-      console.log('User role loaded:', this.userRole);
-
       await this.loadCategories();
-      console.log('Categories loaded:', this.categories);
-
       this.setViewModeByRole();
 
       if (this.userRole === 'production') {
         await this.loadProductionSubmissions();
         await this.loadProductionReviewed();
         this.filteredRequisitions = [...this.productionSubmissions];
-        console.log('Production submissions loaded:', this.productionSubmissions.length);
       } else if (this.userRole === 'procurement') {
         await this.loadProcurementReviewed();
         this.filteredRequisitions = [...this.procurementReviewed];
-        console.log('Procurement items loaded:', this.procurementReviewed.length);
       } else {
+        // For user/store/admin roles
         await this.loadTablesDirectly();
+        
+        // Important: After loading tables, we need to make sure a table is selected
+        if (this.tables.length > 0 && !this.selectedTable) {
+          // Try to get last selected table from localStorage
+          const lastTableId = localStorage.getItem(`lastSelectedRequisitionTable_${this.userId}`);
+          if (lastTableId && this.tables.some(t => t.id === lastTableId)) {
+            this.selectedTable = this.tables.find(t => t.id === lastTableId) || null;
+          } else {
+            // Default to first table
+            this.selectedTable = this.tables[0];
+          }
+          
+          if (this.selectedTable) {
+            this.selectedTableId = this.selectedTable.id;
+            await this.loadRequisitionsDirectly();
+          }
+        }
       }
 
       this.route.queryParams.subscribe(async params => {
         if (params['tableId']) {
-          console.log('Opening table from notification:', params['tableId']);
           setTimeout(async () => {
             const tableToSelect = this.tables.find(t => t.id === params['tableId']);
             if (tableToSelect) {
@@ -248,7 +236,6 @@ export class Page3Component implements OnInit {
         }
       });
     } else {
-      console.log('No user found, redirecting to login');
       this.showToast('Please log in to continue', 'error');
       this.router.navigate(['/login']);
     }
@@ -265,9 +252,7 @@ export class Page3Component implements OnInit {
       } else {
         this.userRole = 'user';
       }
-      console.log('User role loaded:', this.userRole);
     } catch (err) {
-      console.error('Failed to load user role:', err);
       this.userRole = 'user';
     }
   }
@@ -275,9 +260,7 @@ export class Page3Component implements OnInit {
   async loadCategories() {
     try {
       this.categories = await this.db.getUniqueCategories();
-      console.log('Loaded categories:', this.categories);
     } catch (err) {
-      console.error('Failed to load categories:', err);
     }
   }
 
@@ -292,8 +275,6 @@ export class Page3Component implements OnInit {
   }
 
   async loadTablesDirectly() {
-    console.log('Loading tables directly from Firestore for user:', this.userId);
-
     try {
       this.isLoading = true;
       const tablesRef = collection(this.firestore, 'tables');
@@ -319,8 +300,6 @@ export class Page3Component implements OnInit {
           return getDocs(q);
         });
       }
-
-      console.log('Found', querySnapshot.size, 'tables');
 
       const loadedTables: Table[] = [];
       const userEmailPromises: Promise<void>[] = [];
@@ -381,16 +360,19 @@ export class Page3Component implements OnInit {
 
         if (lastTableId && this.tables.some(t => t.id === lastTableId)) {
           this.selectedTableId = lastTableId;
+          this.selectedTable = this.tables.find(t => t.id === this.selectedTableId) || null;
         } else {
+          // Select the first table by default
           this.selectedTableId = this.tables[0].id;
+          this.selectedTable = this.tables[0];
         }
 
-        this.selectedTable = this.tables.find(t => t.id === this.selectedTableId) || null;
-        await this.loadRequisitionsDirectly();
+        if (this.selectedTable) {
+          await this.loadRequisitionsDirectly();
+        }
       }
 
     } catch (err) {
-      console.error('Error loading tables directly:', err);
       this.showToast('Failed to load tables', 'error');
     } finally {
       this.isLoading = false;
@@ -398,12 +380,7 @@ export class Page3Component implements OnInit {
   }
 
   async loadRequisitionsDirectly() {
-    if (!this.selectedTableId) {
-      console.log('Missing tableId for loading requisitions');
-      return;
-    }
-
-    console.log('Loading requisitions directly for table:', this.selectedTableId);
+    if (!this.selectedTableId) return;
 
     try {
       this.isLoading = true;
@@ -418,8 +395,6 @@ export class Page3Component implements OnInit {
         );
         return getDocs(q);
       });
-
-      console.log('Found', querySnapshot.size, 'requisitions');
 
       const loadedRequisitions: Requisition[] = [];
       querySnapshot.forEach(doc => {
@@ -447,7 +422,6 @@ export class Page3Component implements OnInit {
       this.applyFilter();
 
     } catch (err) {
-      console.error('Error loading requisitions:', err);
       this.showToast('Failed to load requisitions', 'error');
     } finally {
       this.isLoading = false;
@@ -485,7 +459,6 @@ export class Page3Component implements OnInit {
       }
 
     } catch (err) {
-      console.error('Failed to load production submissions', err);
       this.showToast('Failed to load submissions', 'error');
     } finally {
       this.isLoading = false;
@@ -523,7 +496,6 @@ export class Page3Component implements OnInit {
       }
 
     } catch (err) {
-      console.error('Failed to load production reviewed', err);
       this.showToast('Failed to load reviewed items', 'error');
     } finally {
       this.isLoading = false;
@@ -558,7 +530,6 @@ export class Page3Component implements OnInit {
       this.updatePagination();
 
     } catch (err) {
-      console.error('Failed to load procurement reviewed', err);
       this.showToast('Failed to load reviewed requisitions', 'error');
     } finally {
       this.isLoading = false;
@@ -601,7 +572,6 @@ export class Page3Component implements OnInit {
           });
         }
       } catch (err) {
-        console.error('Failed to load user email for:', uid, err);
       }
     });
 
@@ -617,7 +587,6 @@ export class Page3Component implements OnInit {
         return data['email'] || 'Unknown';
       }
     } catch (err) {
-      console.error('Failed to load user email:', err);
     }
     return 'Unknown';
   }
@@ -638,14 +607,11 @@ export class Page3Component implements OnInit {
       return;
     }
 
-    console.log('Table changed to:', this.selectedTableId);
-
     if (this.userRole !== 'production' && this.userRole !== 'procurement') {
       localStorage.setItem(`lastSelectedRequisitionTable_${this.userId}`, this.selectedTableId);
     }
 
     this.selectedTable = this.tables.find(t => t.id === this.selectedTableId) || null;
-    console.log('Selected table:', this.selectedTable);
 
     if (this.userRole !== 'production' && this.userRole !== 'procurement') {
       await this.loadRequisitionsDirectly();
@@ -664,7 +630,6 @@ export class Page3Component implements OnInit {
         this.filteredRequisitions = this.productionReviewed.filter(r => r.table_id === table.id);
       }
 
-      console.log(`Filtered to ${this.filteredRequisitions.length} items for table:`, table.name);
       this.currentPage = 1;
       this.updatePagination();
 
@@ -676,7 +641,6 @@ export class Page3Component implements OnInit {
       this.showTableDropdown = false;
 
       this.filteredRequisitions = this.procurementReviewed.filter(r => r.table_id === table.id);
-      console.log(`Filtered to ${this.filteredRequisitions.length} items for table:`, table.name);
       this.currentPage = 1;
       this.updatePagination();
 
@@ -710,14 +674,11 @@ export class Page3Component implements OnInit {
     if (this.userRole === 'production') {
       if (this.selectedProductionView === 'submissions') {
         this.filteredRequisitions = [...this.productionSubmissions];
-        console.log('Showing all submissions:', this.filteredRequisitions.length);
       } else {
         this.filteredRequisitions = [...this.productionReviewed];
-        console.log('Showing all reviewed:', this.filteredRequisitions.length);
       }
     } else if (this.userRole === 'procurement') {
       this.filteredRequisitions = [...this.procurementReviewed];
-      console.log('Showing all procurement items:', this.filteredRequisitions.length);
     }
 
     this.currentPage = 1;
@@ -772,7 +733,6 @@ export class Page3Component implements OnInit {
         }
       }
     } catch (err) {
-      console.error('Failed to load table details:', err);
     }
   }
 
@@ -834,8 +794,7 @@ export class Page3Component implements OnInit {
         this.showToast('Failed to create table', 'error');
       }
     } catch (err) {
-      console.error('Create table error:', err);
-      this.showToast('Failed to create table: ' + (err as Error).message, 'error');
+      this.showToast('Failed to create table', 'error');
     } finally {
       this.isSubmitting = false;
     }
@@ -881,7 +840,6 @@ export class Page3Component implements OnInit {
         this.showToast('Failed to rename table', 'error');
       }
     } catch (err) {
-      console.error('Rename table error:', err);
       this.showToast('Failed to rename table', 'error');
     }
   }
@@ -926,7 +884,6 @@ export class Page3Component implements OnInit {
         this.showToast('Failed to delete table', 'error');
       }
     } catch (err) {
-      console.error('Delete table error:', err);
       this.showToast('Failed to delete table', 'error');
     }
   }
@@ -945,8 +902,6 @@ export class Page3Component implements OnInit {
   }
 
   openEditModal(req: Requisition) {
-    console.log('Opening edit modal for requisition:', req);
-
     if (!this.selectedTableId && this.viewMode === 'my_tables') {
       this.showToast('Please select a table first', 'error');
       return;
@@ -1055,8 +1010,6 @@ export class Page3Component implements OnInit {
         requisitionData.created_at = this.editingRequisition.created_at;
       }
 
-      console.log('Submitting requisition data:', requisitionData);
-
       let result;
 
       if (this.editingRequisition) {
@@ -1074,7 +1027,6 @@ export class Page3Component implements OnInit {
         result = await this.db.createRequisition(requisitionData, []);
 
         if (result.success) {
-          console.log('Requisition created with ID:', result.id);
           this.showToast('Requisition created successfully', 'success');
         }
       }
@@ -1087,8 +1039,7 @@ export class Page3Component implements OnInit {
         this.showToast('Failed to save requisition', 'error');
       }
     } catch (err) {
-      console.error('Submit error:', err);
-      this.showToast('Failed to save requisition: ' + (err as Error).message, 'error');
+      this.showToast('Failed to save requisition', 'error');
     } finally {
       this.isSubmitting = false;
     }
@@ -1120,7 +1071,6 @@ export class Page3Component implements OnInit {
         this.showToast('Could not delete requisition', 'error');
       }
     } catch (err) {
-      console.error('Delete error:', err);
       this.showToast('Delete failed', 'error');
     }
   }
@@ -1176,7 +1126,6 @@ export class Page3Component implements OnInit {
       await this.loadRequisitionsDirectly();
 
     } catch (err) {
-      console.error('Submit table error:', err);
       this.showToast('Failed to submit table', 'error');
     }
   }
@@ -1243,7 +1192,6 @@ export class Page3Component implements OnInit {
         this.showToast('Failed to update requisition', 'error');
       }
     } catch (err) {
-      console.error('Production action error:', err);
       this.showToast('Failed to update requisition', 'error');
     }
   }
@@ -1281,7 +1229,6 @@ export class Page3Component implements OnInit {
         this.showToast('Failed to update', 'error');
       }
     } catch (err) {
-      console.error('Deliver error:', err);
       this.showToast('Failed to update', 'error');
     }
   }
@@ -1318,7 +1265,6 @@ export class Page3Component implements OnInit {
         this.showToast('Failed to save notes', 'error');
       }
     } catch (err) {
-      console.error('Save notes error:', err);
       this.showToast('Failed to save notes', 'error');
     }
   }
@@ -1370,8 +1316,6 @@ export class Page3Component implements OnInit {
         ? `${this.scheduledDate}T${this.scheduledTime}`
         : `${this.scheduledDate}T00:00:00`;
 
-      console.log('Scheduling requisition with date:', scheduledDateTime);
-
       const success = await this.db.updateRequisitionStatus(
         this.selectedRequisition.id,
         'Scheduled',
@@ -1396,7 +1340,6 @@ export class Page3Component implements OnInit {
         this.showToast('Failed to schedule requisition', 'error');
       }
     } catch (err) {
-      console.error('Schedule error:', err);
       this.showToast('Failed to schedule requisition', 'error');
     }
   }
@@ -1448,7 +1391,6 @@ export class Page3Component implements OnInit {
         this.showToast('Failed to approve requisition', 'error');
       }
     } catch (err) {
-      console.error('Approve error:', err);
       this.showToast('Failed to approve requisition', 'error');
     }
   }
@@ -1507,7 +1449,6 @@ export class Page3Component implements OnInit {
         this.showToast('Failed to reject requisition', 'error');
       }
     } catch (err) {
-      console.error('Reject error:', err);
       this.showToast('Failed to reject requisition', 'error');
     }
   }
@@ -1526,25 +1467,44 @@ export class Page3Component implements OnInit {
     if (this.expandedRows[req.id] && !req.materials) {
       this.loadingMaterials[req.id] = true;
 
-      const rawSkuCode    = req.skuCode || req['sku_code'] || req['SKU CODE'] || '';
-      const finalSkuCode  = (rawSkuCode || '').toString().trim();
-
-      console.log('╔═══════════════════════════════════════════════');
-      console.log('║ REQ ID          :', req.id);
-      console.log('║ RAW skuCode     :', req.skuCode);
-      console.log('║ RAW sku_code    :', req['sku_code']);
-      console.log('║ RAW SKU CODE    :', req['SKU CODE']);
-      console.log('║ Final cleaned   : "' + finalSkuCode + '"');
-      console.log('╚═══════════════════════════════════════════════');
+      // Get the SKU code from the requisition - try multiple possible field names
+      const rawSkuCode = req.skuCode || req['sku_code'] || req['SKU CODE'] || '';
+      
+      console.log('Original SKU from requisition:', rawSkuCode);
+      
+      // Don't normalize too aggressively - keep the original format for debugging
+      const finalSkuCode = this.db.normalizeSkuCode(rawSkuCode);
+      
+      console.log('Normalized SKU for lookup:', finalSkuCode);
 
       try {
-        const materials = await this.db.getMaterialsForSku(finalSkuCode);
+        // First, let's check what SKUs exist in master data for debugging
+        const allMasterData = await this.run(() => {
+          const masterDataRef = collection(this.firestore, 'masterData');
+          return getDocs(masterDataRef);
+        });
+        
+        console.log('Available SKUs in master data:');
+        const skusInMaster = new Set();
+        allMasterData.forEach(doc => {
+          const data = doc.data();
+          const sku = data['sku_code'];
+          if (sku) {
+            skusInMaster.add(sku);
+            console.log(`- "${sku}" (normalized: "${this.db.normalizeSkuCode(sku)}")`);
+          }
+        });
+        
+        console.log('Looking for SKU:', finalSkuCode);
+        console.log('Does it exist in master?', skusInMaster.has(finalSkuCode));
 
-        console.log(`[MATERIALS] Loaded ${materials.length} materials for "${finalSkuCode}"`);
+        const materials = await this.db.getMaterialsForSku(finalSkuCode);
+        
+        console.log('Materials found:', materials.length);
 
         req.materials = materials.length > 0 ? materials : [];
       } catch (err) {
-        console.error('[MATERIALS] Failed to load for SKU:', finalSkuCode, err);
+        console.error('Failed to load materials:', err);
         req.materials = [];
         this.showToast('Could not load raw materials list', 'error');
       } finally {
@@ -1584,7 +1544,6 @@ export class Page3Component implements OnInit {
         this.selectedSkuCode = '';
       }
     } catch (err) {
-      console.error('Failed to load SKUs:', err);
       this.showToast('Could not load SKUs', 'error');
     }
   }
@@ -1597,7 +1556,6 @@ export class Page3Component implements OnInit {
 
     const selectedItem = this.availableSkus.find(item => item.sku_name === this.formData.skuName);
     this.selectedSkuCode = selectedItem ? selectedItem.sku_code : '';
-    console.log('Selected SKU code:', this.selectedSkuCode);
   }
 
   async onFileSelected(event: any) {
@@ -1623,7 +1581,7 @@ export class Page3Component implements OnInit {
     } catch (err) {
       this.importStatus = 'error';
       this.importMessage = 'Upload error';
-      this.showToast('Upload error: ' + (err as Error).message, 'error');
+      this.showToast('Upload error', 'error');
     }
   }
 
@@ -1635,10 +1593,8 @@ export class Page3Component implements OnInit {
 
     if (view === 'submissions') {
       this.filteredRequisitions = [...this.productionSubmissions];
-      console.log('Switched to submissions view, items:', this.filteredRequisitions.length);
     } else {
       this.filteredRequisitions = [...this.productionReviewed];
-      console.log('Switched to reviewed view, items:', this.filteredRequisitions.length);
     }
 
     this.currentPage = 1;
@@ -1664,7 +1620,6 @@ export class Page3Component implements OnInit {
         this.tables[tableIndex].item_count = this.requisitions.length;
       }
     } catch (err) {
-      console.error('Failed to update table item count:', err);
     }
   }
 

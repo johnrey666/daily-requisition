@@ -496,7 +496,6 @@
                 </td>
                 <td>
                   <div class="action-buttons">
-                    <!-- Production: Confirm -->
                     <button *ngIf="userRole === 'production' && req.status === 'Submitted'" 
                             class="btn-icon success" 
                             (click)="openProductionActionModal(req, 'confirm'); $event.stopPropagation()"
@@ -506,7 +505,6 @@
                       </svg>
                     </button>
 
-                    <!-- Production: Remove -->
                     <button *ngIf="userRole === 'production' && req.status === 'Submitted'" 
                             class="btn-icon danger" 
                             (click)="openProductionActionModal(req, 'remove'); $event.stopPropagation()"
@@ -517,7 +515,6 @@
                       </svg>
                     </button>
 
-                    <!-- Procurement: Mark Delivered -->
                     <button *ngIf="canMarkDelivered(req)" 
                             class="btn-icon success" 
                             (click)="markDelivered(req); $event.stopPropagation()"
@@ -527,7 +524,6 @@
                       </svg>
                     </button>
 
-                    <!-- Procurement: Add Missing Notes -->
                     <button *ngIf="canAddMissingNotes(req)" 
                             class="btn-icon primary" 
                             (click)="openMissingNotesModal(req); $event.stopPropagation()"
@@ -538,7 +534,6 @@
                       </svg>
                     </button>
 
-                    <!-- Procurement: Schedule -->
                     <button *ngIf="canScheduleRequisition(req)" 
                             class="btn-icon primary" 
                             (click)="openScheduleModal(req); $event.stopPropagation()"
@@ -551,7 +546,6 @@
                       </svg>
                     </button>
 
-                    <!-- Admin Actions -->
                     <button *ngIf="canApproveRequisition(req)" 
                             class="btn-icon success" 
                             (click)="openApproveModal(req); $event.stopPropagation()"
@@ -561,7 +555,6 @@
                       </svg>
                     </button>
 
-                    <!-- Reject -->
                     <button *ngIf="canRejectRequisition(req)" 
                             class="btn-icon danger" 
                             (click)="openRejectModal(req); $event.stopPropagation()"
@@ -572,7 +565,6 @@
                       </svg>
                     </button>
 
-                    <!-- Edit Button -->
                     <button *ngIf="canEditRequisition(req)" 
                             class="btn-icon" 
                             (click)="openEditModal(req); $event.stopPropagation()"
@@ -582,7 +574,6 @@
                       </svg>
                     </button>
 
-                    <!-- Delete Button -->
                     <button *ngIf="canDeleteRequisition(req)" 
                             class="btn-icon danger" 
                             (click)="deleteRequisition(req); $event.stopPropagation()"
