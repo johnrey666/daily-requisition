@@ -30,12 +30,24 @@
       <h1>Material Requisitions</h1>
       <span class="subtitle" *ngIf="viewMode === 'store_submissions' && userRole === 'production'">
         Submitted Tables - Review each requisition
+        <span *ngIf="selectedTable" class="table-filter-indicator">
+          Filtered by: {{ selectedTable.name }}
+          <button class="btn-link-small" (click)="showAllTables()">(clear)</button>
+        </span>
       </span>
       <span class="subtitle" *ngIf="viewMode === 'production_reviewed' && userRole === 'production'">
         Reviewed Requisitions - Your confirmed/removed items
+        <span *ngIf="selectedTable" class="table-filter-indicator">
+          Filtered by: {{ selectedTable.name }}
+          <button class="btn-link-small" (click)="showAllTables()">(clear)</button>
+        </span>
       </span>
       <span class="subtitle" *ngIf="viewMode === 'for_delivery' && userRole === 'procurement'">
         Production Confirmed - Ready for scheduling/delivery
+        <span *ngIf="selectedTable" class="table-filter-indicator">
+          Filtered by: {{ selectedTable.name }}
+          <button class="btn-link-small" (click)="showAllTables()">(clear)</button>
+        </span>
       </span>
       <span class="subtitle" *ngIf="viewMode === 'my_tables'">
         Manage and track material requests
@@ -57,6 +69,16 @@
           Reviewed ({{ productionReviewed.length }})
         </button>
       </div>
+
+      <!-- Show All Tables Button for Production/Procurement -->
+      <button *ngIf="(userRole === 'production' || userRole === 'procurement') && selectedTable" 
+              class="btn btn-outline btn-sm" 
+              (click)="showAllTables()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+        Show All Tables
+      </button>
 
       <!-- Tables Dropdown - Only for store/user with their tables -->
       <div class="dropdown" [class.open]="showTableDropdown" *ngIf="viewMode === 'my_tables'">
@@ -114,25 +136,33 @@
             <line x1="3" y1="9" x2="21" y2="9"/>
             <line x1="9" y1="21" x2="9" y2="9"/>
           </svg>
-          {{ selectedTable ? selectedTable.name : 'Select Table' }}
+          {{ selectedTable ? selectedTable.name : 'All Tables' }}
         </button>
         
         <div class="dropdown-menu" *ngIf="showTableDropdown">
           <div class="dropdown-header">
-            <span>Submitted Tables</span>
+            <span>All Tables</span>
+            <button class="btn-icon" (click)="showAllTables()" title="Show All">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M4 6h16M4 12h16M4 18h16"/>
+              </svg>
+            </button>
           </div>
           
           <div class="dropdown-list">
             <div *ngFor="let table of tables" 
                  class="dropdown-item" 
                  [class.active]="selectedTable?.id === table.id"
+                 [class.submitted]="table.submitted"
                  (click)="selectTable(table)">
               <span class="name">{{ table.name || 'Untitled' }}</span>
               <span class="count">{{ table.item_count || 0 }}</span>
+              <span *ngIf="table.submitted" class="submitted-badge" title="Submitted">✓</span>
+              <span class="submitted-by" *ngIf="table.user_email">by {{ table.user_email }}</span>
             </div>
             
             <div *ngIf="tables.length === 0" class="dropdown-empty">
-              <p>No submitted tables yet</p>
+              <p>No tables yet</p>
             </div>
           </div>
         </div>
@@ -185,8 +215,23 @@
         <line x1="3" y1="9" x2="21" y2="9"/>
         <line x1="9" y1="21" x2="9" y2="9"/>
       </svg>
-      <h3>No Submissions Yet</h3>
-      <p>There are no submitted requisitions to review at this time.</p>
+      <h3>
+        <ng-container *ngIf="selectedTable">
+          No Requisitions in "{{ selectedTable.name }}"
+        </ng-container>
+        <ng-container *ngIf="!selectedTable">
+          No Submissions Yet
+        </ng-container>
+      </h3>
+      <p>
+        <ng-container *ngIf="selectedTable">
+          This table has no requisitions in the current view.
+          <button class="btn-link" (click)="showAllTables()">Show all tables</button>
+        </ng-container>
+        <ng-container *ngIf="!selectedTable">
+          There are no submitted requisitions to review at this time.
+        </ng-container>
+      </p>
     </div>
   </div>
 
@@ -198,8 +243,23 @@
         <line x1="3" y1="9" x2="21" y2="9"/>
         <line x1="9" y1="21" x2="9" y2="9"/>
       </svg>
-      <h3>No Confirmed Requisitions</h3>
-      <p>There are no production-confirmed requisitions ready for delivery.</p>
+      <h3>
+        <ng-container *ngIf="selectedTable">
+          No Confirmed Requisitions in "{{ selectedTable.name }}"
+        </ng-container>
+        <ng-container *ngIf="!selectedTable">
+          No Confirmed Requisitions
+        </ng-container>
+      </h3>
+      <p>
+        <ng-container *ngIf="selectedTable">
+          This table has no production-confirmed requisitions.
+          <button class="btn-link" (click)="showAllTables()">Show all tables</button>
+        </ng-container>
+        <ng-container *ngIf="!selectedTable">
+          There are no production-confirmed requisitions ready for delivery.
+        </ng-container>
+      </p>
     </div>
   </div>
 
@@ -285,8 +345,18 @@
             <span class="stat">
               {{ filteredRequisitions.length }} items
             </span>
-            <span class="stat">
-              {{ selectedProductionView === 'submissions' ? 'Confirm or remove each requisition' : 'Items you have reviewed' }}
+            <span class="stat" *ngIf="selectedTable">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+              </svg>
+              Table: {{ selectedTable.name }}
+              <button class="btn-link-small" (click)="showAllTables()">(clear)</button>
+            </span>
+            <span class="stat" *ngIf="!selectedTable">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+              </svg>
+              Showing all tables
             </span>
           </div>
         </div>
@@ -300,7 +370,16 @@
           <h4>Production Confirmed - Pending Action</h4>
           <div class="stats">
             <span class="stat">{{ filteredRequisitions.length }} items</span>
-            <span class="stat">Schedule, mark delivered, or add notes for missing materials</span>
+            <span class="stat" *ngIf="selectedTable">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+              </svg>
+              Table: {{ selectedTable.name }}
+              <button class="btn-link-small" (click)="showAllTables()">(clear)</button>
+            </span>
+            <span class="stat" *ngIf="!selectedTable">
+              Schedule, mark delivered, or add notes for missing materials
+            </span>
           </div>
         </div>
       </div>
@@ -354,6 +433,7 @@
             <tr>
               <th></th>
               <th *ngIf="userRole === 'production' || userRole === 'procurement'">Table</th>
+              <th *ngIf="userRole === 'production'">Submitted By</th>
               <th>Req #</th>
               <th>Type</th>
               <th>Date</th>
@@ -379,7 +459,15 @@
                   </div>
                 </td>
                 <td *ngIf="userRole === 'production' || userRole === 'procurement'">
-                  <span class="table-name">{{ req.table_id ? (tableNameMap[req.table_id] || req.table_name || '—') : '—' }}</span>
+                  <span class="table-name" 
+                        [class.clickable]="userRole === 'production' || userRole === 'procurement'"
+                        [title]="'Click to filter by ' + (tableNameMap[req.table_id || ''] || req.table_name || 'this table')"
+                        (click)="req.table_id && filterByTable(req.table_id); $event.stopPropagation()">
+                    {{ tableNameMap[req.table_id || ''] || req.table_name || '—' }}
+                  </span>
+                </td>
+                <td *ngIf="userRole === 'production'">
+                  <span class="submitted-by" [title]="req.user_email || ''">{{ req.user_email || '—' }}</span>
                 </td>
                 <td><span class="req-number">{{ req.reqNumber || req.id || 'N/A' }}</span></td>
                 <td>
@@ -388,11 +476,11 @@
                   </span>
                 </td>
                 <td>{{ req.dateNeeded || 'ASAP' }}</td>
-                <td><span class="sku" title="{{ req.skuCode || req['sku_code'] }}">{{ req.skuCode || req['sku_code'] }}</span></td>
+                <td><span class="sku" title="{{ req.skuCode || req['sku_code'] || '' }}">{{ req.skuCode || req['sku_code'] }}</span></td>
                 <td class="limit" title="{{ req.skuName || req['sku_name'] || '—' }}">{{ req.skuName || req['sku_name'] || '—' }}</td>
                 <td class="number">{{ (req.quantity || req['qty_needed'] || 0) | number }}</td>
                 <td>{{ req.unit || req['batch_unit'] || '—' }}</td>
-                <td class="limit" title="{{ req.supplier }}">{{ req.supplier }}</td>
+                <td class="limit" title="{{ req.supplier || '' }}">{{ req.supplier }}</td>
                 <td class="limit" title="{{ req.brand || '—' }}">{{ req.brand || '—' }}</td>
                 <td>
                   <span class="status" [class]="getStatusBadgeClass(req.status)">
@@ -473,7 +561,7 @@
                       </svg>
                     </button>
 
-                    <!-- Reject (for various roles) -->
+                    <!-- Reject -->
                     <button *ngIf="canRejectRequisition(req)" 
                             class="btn-icon danger" 
                             (click)="openRejectModal(req); $event.stopPropagation()"
@@ -512,17 +600,19 @@
               
               <!-- Expanded Row - Materials -->
               <tr class="expanded-row" *ngIf="expandedRows[req.id]">
-                <td [attr.colspan]="(userRole === 'production' || userRole === 'procurement') ? 14 : 13">
+                <td [attr.colspan]="getColspan()">
                   <div class="expanded-content">
                     <div *ngIf="loadingMaterials[req.id]" class="loading-state">
                       <div class="spinner-small"></div>
-                      <span>Loading materials...</span>
+                      <span>Loading materials for SKU {{ req.skuCode || '—' }}...</span>
                     </div>
                     
                     <div *ngIf="!loadingMaterials[req.id] && req.materials?.length">
                       <div class="expanded-header">
-                        <h4>Raw Materials for {{ req.skuCode || req.skuName }}</h4>
-                        <span class="material-note">Based on requisition quantity: {{ (req.quantity || req['qty_needed'] || 0) | number }} {{ req.unit }}</span>
+                        <h4>Raw Materials for {{ req.skuCode || req.skuName || 'Unknown SKU' }}</h4>
+                        <span class="material-note">
+                          Based on requisition quantity: {{ (req.quantity || req['qty_needed'] || 0) | number }} {{ req.unit || '—' }}
+                        </span>
                       </div>
                       
                       <div class="materials-grid">
@@ -542,7 +632,9 @@
                               <td class="number">{{ (mat.quantity_per_batch ?? 0) | number:'1.2-2' }}</td>
                               <td><span class="badge">{{ mat.unit || '—' }}</span></td>
                               <td><span class="badge" [class.badge-material]="mat.type">{{ mat.type || 'N/A' }}</span></td>
-                              <td class="number primary">{{ calculateMaterialTotal(req.quantity || req['qty_needed'] || 0, mat.quantity_per_batch) | number:'1.2-2' }}</td>
+                              <td class="number primary">
+                                {{ calculateMaterialTotal(req.quantity || req['qty_needed'] || 0, mat.quantity_per_batch) | number:'1.2-2' }}
+                              </td>
                             </tr>
                           </tbody>
                         </table>
@@ -555,7 +647,10 @@
                         <line x1="3" y1="9" x2="21" y2="9"/>
                         <line x1="9" y1="21" x2="9" y2="9"/>
                       </svg>
-                      <p>No materials defined for this SKU in master data</p>
+                      <p>
+                        No materials found for SKU <strong>"{{ req.skuCode || req['sku_code'] || '—' }}"</strong><br>
+                        <small>(check master data upload & SKU code formatting)</small>
+                      </p>
                     </div>
                   </div>
                 </td>
@@ -563,7 +658,7 @@
             </ng-container>
             
             <tr *ngIf="filteredRequisitions.length === 0">
-              <td [attr.colspan]="(userRole === 'production' || userRole === 'procurement') ? 14 : 13" class="empty">
+              <td [attr.colspan]="getColspan()" class="empty">
                 <div>
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <rect x="3" y="3" width="18" height="18" rx="2"/>
@@ -960,14 +1055,12 @@
       <div class="modal-body">
         <div class="field">
           <label>Table Name</label>
-          <!-- Create mode input -->
           <input 
             *ngIf="!editingTable"
             type="text" 
             [(ngModel)]="newTableName" 
             placeholder="Enter table name"
             (keyup.enter)="createTable()">
-          <!-- Edit mode input -->
           <input 
             *ngIf="editingTable"
             type="text" 
@@ -978,11 +1071,9 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" (click)="closeTableModal()">Cancel</button>
-        <!-- Create mode button -->
         <button *ngIf="!editingTable" class="btn btn-primary" (click)="createTable()">
           Create
         </button>
-        <!-- Edit mode button -->
         <button *ngIf="editingTable" class="btn btn-primary" (click)="updateTableName()">
           Update
         </button>

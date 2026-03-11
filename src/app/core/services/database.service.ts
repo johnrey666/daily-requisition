@@ -64,15 +64,33 @@ export class DatabaseService {
   // ────────────────────────────────────────────────
   //  PRIVATE HELPER — run any Firestore call safely
   // ────────────────────────────────────────────────
-
   private run<T>(fn: () => Promise<T>): Promise<T> {
     return runInInjectionContext(this.injector, fn);
   }
 
   // ────────────────────────────────────────────────
+  //  HELPER - normalize SKU code (very aggressive cleaning)
+  // ────────────────────────────────────────────────
+  private normalizeSkuCode(sku: any): string {
+    if (!sku) return '';
+
+    let cleaned = String(sku).trim();
+
+    // Remove all whitespace (including non-breaking spaces, tabs, etc.)
+    cleaned = cleaned.replace(/\s+/g, '');
+
+    // Remove any non-alphanumeric characters except hyphen and underscore
+    cleaned = cleaned.replace(/[^a-zA-Z0-9\-_]/g, '');
+
+    // Optional: if you want case-insensitive matching → uncomment next line
+    // cleaned = cleaned.toUpperCase();
+
+    return cleaned;
+  }
+
+  // ────────────────────────────────────────────────
   //  User
   // ────────────────────────────────────────────────
-
   async getCurrentUser(): Promise<User | null> {
     try {
       const authUser = await this.auth.getCurrentUserPromise();
@@ -106,7 +124,6 @@ export class DatabaseService {
   // ────────────────────────────────────────────────
   //  Master Data Upload & Queries
   // ────────────────────────────────────────────────
-
   async uploadMasterData(file: File): Promise<{ success: boolean; count?: number; error?: string }> {
     try {
       const currentUser = await this.auth.getCurrentUserPromise();
@@ -129,12 +146,17 @@ export class DatabaseService {
         const batch = writeBatch(this.firestore);
 
         for (const row of dataRows) {
-          if (!Array.isArray(row) || row.length < 5 || !row[0]?.toString().trim()) {
+          if (!Array.isArray(row) || row.length < 5 || !row[0]) {
             continue;
           }
 
+          // Clean SKU code aggressively
+          const skuCode = this.normalizeSkuCode(row[0]);
+
+          if (!skuCode) continue;
+
           const docData: MasterData = {
-            sku_code: String(row[0] || '').trim(),
+            sku_code: skuCode,
             sku_name: String(row[1] || '').trim(),
             qty_per_unit: row[2] ? Number(row[2]) : null,
             unit: String(row[3] || '').trim(),
@@ -154,9 +176,7 @@ export class DatabaseService {
             uploaded_at: new Date()
           };
 
-          const skuCode = docData.sku_code as string;
           const rawMaterial = docData.raw_material || 'no-material';
-
           const docId = `${skuCode}_${rawMaterial}`
             .replace(/[^a-zA-Z0-9_-]/g, '_')
             .substring(0, 1500);
@@ -245,38 +265,41 @@ export class DatabaseService {
   }
 
   async getMaterialsForSku(skuCode: string): Promise<any[]> {
-    if (!skuCode?.trim()) return [];
+    if (!skuCode?.toString().trim()) {
+      console.warn('getMaterialsForSku called with empty SKU');
+      return [];
+    }
+
+    const cleanSku = this.normalizeSkuCode(skuCode);
+    console.log(`[MATERIALS] Searching for normalized SKU → "${cleanSku}"`);
 
     try {
-      console.log('Fetching materials for SKU:', skuCode);
-
       const snapshot = await this.run(() => {
-        const masterDataRef = collection(this.firestore, 'masterData');
-        const q = query(masterDataRef, where('sku_code', '==', skuCode));
+        const q = query(
+          collection(this.firestore, 'masterData'),
+          where('sku_code', '==', cleanSku)
+        );
         return getDocs(q);
       });
 
-      console.log('Found', snapshot.size, 'material documents');
+      console.log(`[MATERIALS] Found ${snapshot.size} documents for "${cleanSku}"`);
 
       const materials: any[] = [];
-      snapshot.forEach(doc => {
-        const data = doc.data() as MasterData;
-        const material = {
-          raw_material: data.raw_material || '',
-          quantity_per_batch: data.qty_per_batch ?? null,
-          unit: data.batch_unit || '',
-          type: data.type || ''
-        };
-
-        if (material.raw_material.trim() !== '') {
-          materials.push(material);
+      snapshot.forEach(d => {
+        const data = d.data() as MasterData;
+        if (data.raw_material?.trim()) {
+          materials.push({
+            raw_material: data.raw_material.trim(),
+            quantity_per_batch: data.qty_per_batch ?? null,
+            unit: (data.batch_unit || '').trim(),
+            type: (data.type || '').trim()
+          });
         }
       });
 
-      console.log('Materials for SKU:', materials);
       return materials;
     } catch (err) {
-      console.error('getMaterialsForSku failed', err);
+      console.error('[MATERIALS] Query failed for SKU:', cleanSku, err);
       return [];
     }
   }
@@ -284,7 +307,6 @@ export class DatabaseService {
   // ────────────────────────────────────────────────
   //  Inventory
   // ────────────────────────────────────────────────
-
   async addInventoryItem(item: InventoryItem): Promise<{ success: boolean; id?: string }> {
     try {
       const docRef = await this.run(() =>
@@ -362,7 +384,6 @@ export class DatabaseService {
   // ────────────────────────────────────────────────
   //  Tables
   // ────────────────────────────────────────────────
-
   async getUserTables(userId: string): Promise<any[]> {
     try {
       if (!userId) return [];
@@ -543,7 +564,6 @@ export class DatabaseService {
   // ────────────────────────────────────────────────
   //  Requisitions
   // ────────────────────────────────────────────────
-
   async getTableRequisitions(tableId: string, userId: string): Promise<any[]> {
     try {
       if (!tableId || !userId) {

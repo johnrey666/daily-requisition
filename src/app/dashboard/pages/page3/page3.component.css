@@ -56,6 +56,61 @@ h2 {
 .header-actions {
   display: flex;
   gap: 12px;
+  align-items: center;
+}
+
+/* ==========================================================================
+   Role Header
+   ========================================================================== */
+.role-header {
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-radius: 20px;
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.role-badge.role-admin {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.role-badge.role-production {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+
+.role-badge.role-procurement {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.role-badge.role-store,
+.role-badge.role-user {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.role-description {
+  font-size: 13px;
+  color: #475569;
+  flex: 1;
 }
 
 /* ==========================================================================
@@ -106,6 +161,28 @@ h2 {
   color: #334155;
 }
 
+.btn-success {
+  background: #059669;
+  color: white;
+  border-color: #059669;
+}
+
+.btn-success:hover:not(:disabled) {
+  background: #047857;
+  border-color: #047857;
+}
+
+.btn-danger {
+  background: #dc2626;
+  color: white;
+  border-color: #dc2626;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
 .btn-outline {
   background: transparent;
   border-color: #e2e8f0;
@@ -149,6 +226,21 @@ h2 {
   text-decoration: underline;
 }
 
+.btn-link-small {
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 4px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.btn-link-small:hover {
+  color: #1d4ed8;
+}
+
 .btn svg {
   width: 14px;
   height: 14px;
@@ -166,11 +258,55 @@ h2 {
   border-radius: 4px;
   color: #64748b;
   cursor: pointer;
+  transition: all 0.15s;
 }
 
 .btn-icon:hover {
   background: #f1f5f9;
   color: #0f172a;
+}
+
+.btn-icon.success:hover {
+  background: #f0fdf4;
+  color: #059669;
+}
+
+.btn-icon.primary:hover {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.btn-icon.danger:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* ==========================================================================
+   View Toggle
+   ========================================================================== */
+.view-toggle {
+  display: flex;
+  background: #f1f5f9;
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.btn-toggle {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-toggle.active {
+  background: white;
+  color: #2563eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* ==========================================================================
@@ -185,7 +321,7 @@ h2 {
   top: 100%;
   right: 0;
   z-index: 50;
-  min-width: 240px;
+  min-width: 280px;
   margin-top: 8px;
   background: white;
   border: 1px solid #e2e8f0;
@@ -214,8 +350,8 @@ h2 {
 .dropdown-item {
   padding: 10px 16px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 8px;
   cursor: pointer;
   font-size: 13px;
   border-bottom: 1px solid #f1f5f9;
@@ -230,19 +366,51 @@ h2 {
   color: #2563eb;
 }
 
+.dropdown-item.submitted {
+  opacity: 0.7;
+  border-left: 3px solid #059669;
+  background: #f0fdf4;
+}
+
 .dropdown-item .name {
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 500;
 }
 
 .dropdown-item .count {
-  font-size: 12px;
+  font-size: 11px;
   color: #64748b;
   background: #f1f5f9;
   padding: 2px 6px;
   border-radius: 12px;
+}
+
+.dropdown-item .submitted-by {
+  font-size: 10px;
+  color: #64748b;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdown-item .submitted-badge {
+  color: #059669;
+  font-size: 12px;
+  font-weight: 600;
+  background: #059669;
+  color: white;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  margin-left: 4px;
 }
 
 .dropdown-empty {
@@ -265,6 +433,35 @@ h2 {
 
 .dropdown-footer:hover {
   background: #f8fafc;
+}
+
+/* ==========================================================================
+   Badge Submitted
+   ========================================================================== */
+.badge-submitted {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  background: #059669;
+  color: white;
+  border-radius: 12px;
+  margin-left: 4px;
+}
+
+/* ==========================================================================
+   Table Filter Indicator
+   ========================================================================== */
+.table-filter-indicator {
+  margin-left: 8px;
+  font-size: 12px;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 2px 8px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* ==========================================================================
@@ -345,6 +542,7 @@ h2 {
   display: flex;
   gap: 16px;
   margin-top: 6px;
+  flex-wrap: wrap;
 }
 
 .stat {
@@ -510,6 +708,60 @@ tr:hover td {
   font-weight: 500;
 }
 
+/* Table Name in Production View */
+.table-name {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #f1f5f9;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #334155;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  transition: all 0.15s;
+}
+
+/* Clickable table name */
+.table-name.clickable {
+  cursor: pointer;
+  position: relative;
+}
+
+.table-name.clickable:hover {
+  background: #2563eb;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+  border-color: #2563eb;
+}
+
+.table-name.clickable:active {
+  transform: translateY(0);
+}
+
+/* Add a filter icon on hover */
+.table-name.clickable:hover::after {
+  content: "🔍";
+  font-size: 10px;
+  margin-left: 4px;
+  opacity: 0.8;
+}
+
+/* Submitted By in Production View */
+.submitted-by {
+  font-size: 11px;
+  color: #475569;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}
+
 /* ==========================================================================
    Badges & Status
    ========================================================================== */
@@ -552,39 +804,50 @@ tr:hover td {
   border-radius: 12px;
 }
 
-.status.pending {
+.status-pending {
   background: #fffbeb;
   color: #b45309;
 }
 
-.status.approved {
-  background: #f0fdf4;
-  color: #065f46;
-}
-
-.status.processing {
+.status-submitted {
   background: #eff6ff;
   color: #1e40af;
 }
 
-/* ==========================================================================
-   Actions
-   ========================================================================== */
-.delete-btn {
-  padding: 6px;
-  border: none;
-  background: transparent;
-  border-radius: 4px;
-  color: #94a3b8;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.status-scheduled {
+  background: #f3e8ff;
+  color: #6b21a8;
 }
 
-.delete-btn:hover {
+.status-approved {
+  background: #f0fdf4;
+  color: #065f46;
+}
+
+.status-rejected {
   background: #fef2f2;
-  color: #dc2626;
+  color: #b91c1c;
+}
+
+/* ==========================================================================
+   Action Buttons
+   ========================================================================== */
+.action-buttons {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   Scheduled Date
+   ========================================================================== */
+.scheduled-date {
+  font-size: 11px;
+  color: #6b21a8;
+  background: #f3e8ff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
 }
 
 /* ==========================================================================
@@ -794,6 +1057,14 @@ tr:hover td {
   overflow-y: auto;
 }
 
+.modal-subtitle {
+  font-size: 13px;
+  color: #475569;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
 .modal-footer {
   padding: 16px 20px;
   border-top: 1px solid #e2e8f0;
@@ -858,6 +1129,13 @@ tr:hover td {
   min-height: 60px;
 }
 
+.field input.readonly {
+  background: #f8fafc;
+  color: #1e293b;
+  border-color: #e2e8f0;
+  cursor: default;
+}
+
 .error {
   font-size: 11px;
   color: #dc2626;
@@ -893,8 +1171,151 @@ tr:hover td {
   animation: spin 0.6s linear infinite;
 }
 
+.spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e2e8f0;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Loading State for Materials */
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+/* ==========================================================================
+   Expanded Row for Materials
+   ========================================================================== */
+.expanded-row td {
+  background: #f8fafc;
+  padding: 0;
+}
+
+.expanded-content {
+  padding: 20px;
+}
+
+.expanded-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.expanded-header h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.material-note {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.materials-grid {
+  overflow-x: auto;
+}
+
+.materials-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.materials-table th {
+  padding: 8px 12px;
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 500;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.materials-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  background: transparent;
+}
+
+.materials-table tr:last-child td {
+  border-bottom: none;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 6px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  font-size: 10px;
+  color: #334155;
+}
+
+.badge-material {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.number.primary {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.empty-materials {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.empty-materials svg {
+  color: #94a3b8;
+}
+
+/* Expand/Collapse Icon */
+.expand-cell {
+  width: 40px;
+  text-align: center;
+}
+
+.expand-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: #94a3b8;
+  transition: transform 0.15s;
+}
+
+.expand-icon.expanded svg {
+  transform: rotate(90deg);
+}
+
+.parent-row {
+  cursor: pointer;
+}
+
+.parent-row.expanded {
+  background: #f8fafc;
+}
+
+.parent-row.expanded td {
+  background: #f8fafc;
 }
 
 /* ==========================================================================
@@ -937,6 +1358,11 @@ tr:hover td {
   background: #fef2f2;
 }
 
+.snackbar.info {
+  border-left: 4px solid #2563eb;
+  background: #eff6ff;
+}
+
 .snackbar button {
   padding: 4px;
   border: none;
@@ -973,6 +1399,12 @@ tr:hover td {
   .header-actions .btn {
     width: 100%;
     justify-content: center;
+  }
+
+  .role-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
   }
 
   .dropdown-menu {
@@ -1038,6 +1470,12 @@ tr:hover td {
     right: 16px;
     min-width: auto;
   }
+
+  .expanded-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1049,141 +1487,4 @@ tr:hover td {
   .import-badge {
     margin-left: 0;
   }
-}
-/* Add these to your existing CSS */
-
-/* Status Badges */
-.status-pending {
-  background: #fffbeb;
-  color: #b45309;
-}
-
-.status-submitted {
-  background: #eff6ff;
-  color: #1e40af;
-}
-
-.status-scheduled {
-  background: #f3e8ff;
-  color: #6b21a8;
-}
-
-.status-approved {
-  background: #f0fdf4;
-  color: #065f46;
-}
-
-.status-rejected {
-  background: #fef2f2;
-  color: #b91c1c;
-}
-
-/* Action Buttons */
-.action-buttons {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
-.btn-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  border-radius: 4px;
-  color: #64748b;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.btn-icon:hover {
-  background: #f1f5f9;
-  color: #0f172a;
-}
-
-.btn-icon.success:hover {
-  background: #f0fdf4;
-  color: #059669;
-}
-
-.btn-icon.primary:hover {
-  background: #eff6ff;
-  color: #2563eb;
-}
-
-.btn-icon.danger:hover {
-  background: #fef2f2;
-  color: #dc2626;
-}
-
-.btn-success {
-  background: #059669;
-  color: white;
-  border-color: #059669;
-}
-
-.btn-success:hover:not(:disabled) {
-  background: #047857;
-  border-color: #047857;
-}
-
-.btn-danger {
-  background: #dc2626;
-  color: white;
-  border-color: #dc2626;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: #b91c1c;
-  border-color: #b91c1c;
-}
-
-/* Scheduled Date */
-.scheduled-date {
-  font-size: 11px;
-  color: #6b21a8;
-  background: #f3e8ff;
-  padding: 2px 6px;
-  border-radius: 4px;
-  white-space: nowrap;
-}
-
-/* Modal Subtitle */
-.modal-subtitle {
-  font-size: 13px;
-  color: #475569;
-  margin-bottom: 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-/* Role Badge */
-.role-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-radius: 12px;
-  background: #e2e8f0;
-  color: #334155;
-}
-
-.role-badge.admin {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.role-badge.procurement {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.role-badge.user {
-  background: #dbeafe;
-  color: #1e40af;
 }
