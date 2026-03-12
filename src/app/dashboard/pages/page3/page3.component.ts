@@ -1459,7 +1459,7 @@ export class Page3Component implements OnInit {
     this.rejectionReason = '';
   }
 
-  // FIXED: Improved toggleRow method with better SKU code handling
+  // FIXED: Enhanced toggleRow method with comprehensive debugging
   async toggleRow(req: Requisition) {
     if (!req.id) return;
 
@@ -1468,58 +1468,110 @@ export class Page3Component implements OnInit {
     if (this.expandedRows[req.id] && !req.materials) {
       this.loadingMaterials[req.id] = true;
 
-      // Get the SKU code from the requisition - based on your Firestore data, it's stored as 'skuCode' (camelCase)
+      // Get the SKU code from the requisition
       const skuCode = req.skuCode || '';
       
-      console.log('Original SKU from requisition:', skuCode);
-      console.log('Full requisition object:', req);
+      console.log('========== MATERIAL LOOKUP DEBUG ==========');
+      console.log('1. Original SKU from requisition:', skuCode);
+      console.log('2. SKU type:', typeof skuCode);
+      console.log('3. Full requisition object:', JSON.stringify(req, null, 2));
       
       if (!skuCode) {
-        console.error('No SKU code found in requisition. Available fields:', Object.keys(req));
+        console.error('No SKU code found in requisition');
         req.materials = [];
         this.loadingMaterials[req.id] = false;
         this.showToast('No SKU code found for this requisition', 'error');
         return;
       }
 
-      // Clean the SKU code - remove any extra spaces
+      // Clean the SKU code
       const cleanSkuCode = skuCode.toString().trim();
-      
-      console.log('Cleaned SKU for lookup:', cleanSkuCode);
+      console.log('4. Cleaned SKU for lookup:', cleanSkuCode);
 
       try {
-        // Let's check what SKUs exist in master data for debugging
-        console.log('Checking master data for SKU:', cleanSkuCode);
+        // First, let's fetch ALL master data to see what's available
+        console.log('5. Fetching all master data...');
+        const allMasterData = await this.run(() => {
+          const masterDataRef = collection(this.firestore, 'masterData');
+          return getDocs(masterDataRef);
+        });
         
-        // Try to get materials using the SKU code
-        const materials = await this.db.getMaterialsForSku(cleanSkuCode);
+        console.log('6. Total master data documents:', allMasterData.size);
         
-        console.log('Materials found:', materials.length);
+        const skusInMaster: string[] = [];
+        const masterDataEntries: any[] = [];
         
-        if (materials.length > 0) {
-          req.materials = materials;
-          console.log('Materials loaded successfully:', materials);
-        } else {
-          console.log('No materials found for SKU:', cleanSkuCode);
-          req.materials = [];
+        allMasterData.forEach(doc => {
+          const data = doc.data();
+          masterDataEntries.push({ id: doc.id, ...data });
           
-          // Optional: Try to fetch all master data to see what's available
-          const allMasterData = await this.run(() => {
-            const masterDataRef = collection(this.firestore, 'masterData');
-            return getDocs(masterDataRef);
-          });
-          
-          console.log('All SKUs in master data:');
-          const skusInMaster: string[] = [];
-          allMasterData.forEach(doc => {
-            const data = doc.data();
-            const masterSku = data['sku_code'] || '';
-            if (masterSku) {
-              skusInMaster.push(masterSku.toString().trim());
+          // Check all possible SKU field names
+          const possibleSkuFields = ['sku_code', 'skuCode', 'SKU CODE', 'sku', 'code'];
+          possibleSkuFields.forEach(field => {
+            if (data[field]) {
+              const skuValue = data[field].toString().trim();
+              skusInMaster.push(skuValue);
+              console.log(`   - Found SKU in field "${field}": "${skuValue}"`);
             }
           });
-          console.log('Available SKUs in master data:', skusInMaster);
-          console.log('Is your SKU in master data?', skusInMaster.includes(cleanSkuCode));
+        });
+        
+        console.log('7. All unique SKUs in master data:', [...new Set(skusInMaster)]);
+        console.log('8. Looking for SKU:', cleanSkuCode);
+        console.log('9. Exact match?', skusInMaster.includes(cleanSkuCode));
+        
+        // Try different matching strategies
+        console.log('10. Trying different matching strategies:');
+        
+        // Strategy 1: Exact match
+        if (skusInMaster.includes(cleanSkuCode)) {
+          console.log('   ✓ Exact match found!');
+        }
+        
+        // Strategy 2: Case-insensitive match
+        const caseInsensitiveMatch = skusInMaster.find(
+          sku => sku.toLowerCase() === cleanSkuCode.toLowerCase()
+        );
+        if (caseInsensitiveMatch) {
+          console.log('   ✓ Case-insensitive match found:', caseInsensitiveMatch);
+        }
+        
+        // Strategy 3: Match without leading zeros
+        const withoutLeadingZeros = cleanSkuCode.replace(/^0+/, '');
+        const leadingZeroMatch = skusInMaster.find(
+          sku => sku.replace(/^0+/, '') === withoutLeadingZeros
+        );
+        if (leadingZeroMatch) {
+          console.log('   ✓ Match without leading zeros found:', leadingZeroMatch);
+        }
+        
+        // Strategy 4: Match as number (if both are numeric)
+        if (!isNaN(Number(cleanSkuCode))) {
+          const numericSku = Number(cleanSkuCode);
+          const numericMatch = skusInMaster.find(sku => {
+            if (!isNaN(Number(sku))) {
+              return Number(sku) === numericSku;
+            }
+            return false;
+          });
+          if (numericMatch) {
+            console.log('   ✓ Numeric match found:', numericMatch);
+          }
+        }
+
+        // Now try to get materials using the database service
+        console.log('11. Calling db.getMaterialsForSku with:', cleanSkuCode);
+        const materials = await this.db.getMaterialsForSku(cleanSkuCode);
+        
+        console.log('12. Materials found:', materials.length);
+        console.log('13. Materials data:', JSON.stringify(materials, null, 2));
+
+        if (materials.length > 0) {
+          req.materials = materials;
+          console.log('✅ Materials loaded successfully!');
+        } else {
+          console.log('❌ No materials found for SKU:', cleanSkuCode);
+          req.materials = [];
         }
 
       } catch (err) {
