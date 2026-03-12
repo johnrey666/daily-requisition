@@ -1459,6 +1459,7 @@ export class Page3Component implements OnInit {
     this.rejectionReason = '';
   }
 
+  // FIXED: Improved toggleRow method with better SKU code handling
   async toggleRow(req: Requisition) {
     if (!req.id) return;
 
@@ -1467,42 +1468,60 @@ export class Page3Component implements OnInit {
     if (this.expandedRows[req.id] && !req.materials) {
       this.loadingMaterials[req.id] = true;
 
-      // Get the SKU code from the requisition - try multiple possible field names
-      const rawSkuCode = req.skuCode || req['sku_code'] || req['SKU CODE'] || '';
+      // Get the SKU code from the requisition - based on your Firestore data, it's stored as 'skuCode' (camelCase)
+      const skuCode = req.skuCode || '';
       
-      console.log('Original SKU from requisition:', rawSkuCode);
+      console.log('Original SKU from requisition:', skuCode);
+      console.log('Full requisition object:', req);
       
-      // Don't normalize too aggressively - keep the original format for debugging
-      const finalSkuCode = this.db.normalizeSkuCode(rawSkuCode);
+      if (!skuCode) {
+        console.error('No SKU code found in requisition. Available fields:', Object.keys(req));
+        req.materials = [];
+        this.loadingMaterials[req.id] = false;
+        this.showToast('No SKU code found for this requisition', 'error');
+        return;
+      }
+
+      // Clean the SKU code - remove any extra spaces
+      const cleanSkuCode = skuCode.toString().trim();
       
-      console.log('Normalized SKU for lookup:', finalSkuCode);
+      console.log('Cleaned SKU for lookup:', cleanSkuCode);
 
       try {
-        // First, let's check what SKUs exist in master data for debugging
-        const allMasterData = await this.run(() => {
-          const masterDataRef = collection(this.firestore, 'masterData');
-          return getDocs(masterDataRef);
-        });
+        // Let's check what SKUs exist in master data for debugging
+        console.log('Checking master data for SKU:', cleanSkuCode);
         
-        console.log('Available SKUs in master data:');
-        const skusInMaster = new Set();
-        allMasterData.forEach(doc => {
-          const data = doc.data();
-          const sku = data['sku_code'];
-          if (sku) {
-            skusInMaster.add(sku);
-            console.log(`- "${sku}" (normalized: "${this.db.normalizeSkuCode(sku)}")`);
-          }
-        });
-        
-        console.log('Looking for SKU:', finalSkuCode);
-        console.log('Does it exist in master?', skusInMaster.has(finalSkuCode));
-
-        const materials = await this.db.getMaterialsForSku(finalSkuCode);
+        // Try to get materials using the SKU code
+        const materials = await this.db.getMaterialsForSku(cleanSkuCode);
         
         console.log('Materials found:', materials.length);
+        
+        if (materials.length > 0) {
+          req.materials = materials;
+          console.log('Materials loaded successfully:', materials);
+        } else {
+          console.log('No materials found for SKU:', cleanSkuCode);
+          req.materials = [];
+          
+          // Optional: Try to fetch all master data to see what's available
+          const allMasterData = await this.run(() => {
+            const masterDataRef = collection(this.firestore, 'masterData');
+            return getDocs(masterDataRef);
+          });
+          
+          console.log('All SKUs in master data:');
+          const skusInMaster: string[] = [];
+          allMasterData.forEach(doc => {
+            const data = doc.data();
+            const masterSku = data['sku_code'] || '';
+            if (masterSku) {
+              skusInMaster.push(masterSku.toString().trim());
+            }
+          });
+          console.log('Available SKUs in master data:', skusInMaster);
+          console.log('Is your SKU in master data?', skusInMaster.includes(cleanSkuCode));
+        }
 
-        req.materials = materials.length > 0 ? materials : [];
       } catch (err) {
         console.error('Failed to load materials:', err);
         req.materials = [];

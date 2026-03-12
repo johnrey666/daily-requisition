@@ -954,6 +954,7 @@ export class DatabaseService {
       const tablesPromises = tables.map(table =>
         this.getInventoryItemsByTable(table.id, userId)
       );
+      
       const allItemsArrays = await Promise.all(tablesPromises);
       const allItems = allItemsArrays.flat();
 
