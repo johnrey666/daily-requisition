@@ -28,18 +28,11 @@
   <div class="header">
     <div>
       <h1>Material Requisitions</h1>
-      <span class="subtitle" *ngIf="viewMode === 'store_submissions' && userRole === 'production'">
-        Submitted Tables - Review each requisition
+      <span class="subtitle" *ngIf="userRole === 'production'">
+        Production Review - Review submitted tables
         <span *ngIf="selectedTable" class="table-filter-indicator">
-          Filtered by: {{ selectedTable.name }}
-          <button class="btn-link-small" (click)="showAllTables()">(clear)</button>
-        </span>
-      </span>
-      <span class="subtitle" *ngIf="viewMode === 'production_reviewed' && userRole === 'production'">
-        Reviewed Requisitions - Your confirmed/removed items
-        <span *ngIf="selectedTable" class="table-filter-indicator">
-          Filtered by: {{ selectedTable.name }}
-          <button class="btn-link-small" (click)="showAllTables()">(clear)</button>
+          Table: {{ selectedTable.name }}
+          <button class="btn-link-small" (click)="showAllTables()">(show all)</button>
         </span>
       </span>
       <span class="subtitle" *ngIf="viewMode === 'for_delivery' && userRole === 'procurement'">
@@ -54,22 +47,6 @@
       </span>
     </div>
     <div class="header-actions">
-      <!-- Production View Toggle -->
-      <div class="view-toggle" *ngIf="userRole === 'production'">
-        <button 
-          class="btn-toggle" 
-          [class.active]="selectedProductionView === 'submissions'"
-          (click)="switchProductionView('submissions')">
-          Submissions ({{ productionSubmissions.length }})
-        </button>
-        <button 
-          class="btn-toggle" 
-          [class.active]="selectedProductionView === 'reviewed'"
-          (click)="switchProductionView('reviewed')">
-          Reviewed ({{ productionReviewed.length }})
-        </button>
-      </div>
-
       <!-- Show All Tables Button for Production/Procurement -->
       <button *ngIf="(userRole === 'production' || userRole === 'procurement') && selectedTable" 
               class="btn btn-outline btn-sm" 
@@ -78,6 +55,16 @@
           <path d="M4 6h16M4 12h16M4 18h16"/>
         </svg>
         Show All Tables
+      </button>
+
+      <!-- Submit Reviewed Table Button for Production -->
+      <button *ngIf="canSubmitReviewedTable()" 
+              class="btn btn-success" 
+              (click)="submitReviewedTable()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M20 6L9 17l-5-5"/>
+        </svg>
+        Submit to Procurement
       </button>
 
       <!-- Tables Dropdown - Only for store/user with their tables -->
@@ -336,6 +323,40 @@
       </div>
     </div>
 
+    <!-- Production Review Table Info -->
+    <div class="table-info-card" *ngIf="selectedTable && userRole === 'production'">
+      <div class="table-info-content">
+        <div>
+          <h4>{{ selectedTable.name }}</h4>
+          <div class="stats">
+            <span class="stat">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+              </svg>
+              {{ filteredRequisitions.length }} submissions to review
+            </span>
+            <span class="stat" *ngIf="selectedTable.submitted">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M20 6L9 17l-5-5"/>
+              </svg>
+              Submitted {{ selectedTable.submitted_at | date:'short' }}
+            </span>
+            <span class="stat" *ngIf="selectedTable.user_email">
+              by {{ selectedTable.user_email }}
+            </span>
+          </div>
+        </div>
+        <div class="table-actions" *ngIf="canSubmitReviewedTable()">
+          <button class="btn btn-success" (click)="submitReviewedTable()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M20 6L9 17l-5-5"/>
+            </svg>
+            Submit to Procurement
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Store Submissions Header (Production) -->
     <div class="table-info-card" *ngIf="viewMode === 'store_submissions' && userRole === 'production'">
       <div class="table-info-content">
@@ -496,24 +517,37 @@
                 </td>
                 <td>
                   <div class="action-buttons">
-                    <button *ngIf="userRole === 'production' && req.status === 'Submitted'" 
+                    <button *ngIf="userRole === 'production' && req.status === 'Submitted' && !req.production_action" 
                             class="btn-icon success" 
-                            (click)="openProductionActionModal(req, 'confirm'); $event.stopPropagation()"
+                            (click)="markProductionAction(req, 'confirmed'); $event.stopPropagation()"
                             title="Confirm">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path d="M20 6L9 17l-5-5"/>
                       </svg>
                     </button>
 
-                    <button *ngIf="userRole === 'production' && req.status === 'Submitted'" 
+                    <button *ngIf="userRole === 'production' && req.status === 'Submitted' && !req.production_action" 
                             class="btn-icon danger" 
-                            (click)="openProductionActionModal(req, 'remove'); $event.stopPropagation()"
+                            (click)="openProductionActionModal(req, 'removed'); $event.stopPropagation()"
                             title="Remove">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <line x1="18" y1="6" x2="6" y2="18"/>
                         <line x1="6" y1="6" x2="18" y2="18"/>
                       </svg>
                     </button>
+
+                    <span *ngIf="req.production_action === 'confirmed'" class="action-marked confirmed" title="Confirmed by production">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M20 6L9 17l-5-5"/>
+                      </svg>
+                    </span>
+
+                    <span *ngIf="req.production_action === 'removed'" class="action-marked removed" title="Removed by production">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                      </svg>
+                    </span>
 
                     <button *ngIf="canMarkDelivered(req)" 
                             class="btn-icon success" 
@@ -552,16 +586,6 @@
                             title="Approve">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path d="M20 6L9 17l-5-5"/>
-                      </svg>
-                    </button>
-
-                    <button *ngIf="canRejectRequisition(req)" 
-                            class="btn-icon danger" 
-                            (click)="openRejectModal(req); $event.stopPropagation()"
-                            title="Reject">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
                       </svg>
                     </button>
 
@@ -945,48 +969,17 @@
     </div>
   </div>
 
-  <!-- Reject Modal -->
-  <div class="modal" [class.active]="showRejectModal">
-    <div class="backdrop" (click)="closeRejectModal()"></div>
-    <div class="modal-container modal-sm">
-      <div class="modal-header">
-        <h3>Reject Requisition</h3>
-        <button class="close" (click)="closeRejectModal()">✕</button>
-      </div>
-      <div class="modal-body">
-        <p class="modal-subtitle">
-          Reject requisition <strong>{{ selectedRequisition?.reqNumber }}</strong>
-        </p>
-        
-        <div class="field">
-          <label>Reason *</label>
-          <textarea 
-            [(ngModel)]="rejectionReason"
-            rows="3"
-            placeholder="Please provide a reason for rejection..."></textarea>
-          <span class="error" *ngIf="showRejectModal && !rejectionReason">Reason is required</span>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="closeRejectModal()">Cancel</button>
-        <button class="btn btn-danger" (click)="confirmReject()" [disabled]="!rejectionReason">
-          Reject
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- Production Action Modal -->
   <div class="modal" [class.active]="showProductionActionModal">
     <div class="backdrop" (click)="closeProductionActionModal()"></div>
     <div class="modal-container modal-sm">
       <div class="modal-header">
-        <h3>{{ productionActionType === 'confirm' ? 'Confirm' : 'Remove' }} Requisition</h3>
+        <h3>{{ productionActionType === 'confirmed' ? 'Confirm' : 'Remove' }} Requisition</h3>
         <button class="close" (click)="closeProductionActionModal()">✕</button>
       </div>
       <div class="modal-body">
         <p class="modal-subtitle">
-          {{ productionActionType === 'confirm' ? 'Confirm' : 'Remove' }} requisition <strong>{{ selectedRequisition?.reqNumber }}</strong>
+          {{ productionActionType === 'confirmed' ? 'Confirm' : 'Remove' }} requisition <strong>{{ selectedRequisition?.reqNumber }}</strong>
         </p>
         
         <div class="field">
@@ -994,13 +987,13 @@
           <textarea 
             [(ngModel)]="productionActionNotes"
             rows="3"
-            [placeholder]="productionActionType === 'confirm' ? 'Add any confirmation notes...' : 'Add reason for removal...'"></textarea>
+            [placeholder]="productionActionType === 'confirmed' ? 'Add any confirmation notes...' : 'Add reason for removal...'"></textarea>
         </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" (click)="closeProductionActionModal()">Cancel</button>
-        <button class="btn" [class.btn-success]="productionActionType === 'confirm'" [class.btn-danger]="productionActionType === 'remove'" (click)="confirmProductionAction()">
-          {{ productionActionType === 'confirm' ? 'Confirm' : 'Remove' }}
+        <button class="btn" [class.btn-success]="productionActionType === 'confirmed'" [class.btn-danger]="productionActionType === 'removed'" (click)="confirmProductionAction()">
+          {{ productionActionType === 'confirmed' ? 'Confirm' : 'Remove' }}
         </button>
       </div>
     </div>

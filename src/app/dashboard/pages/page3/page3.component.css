@@ -281,6 +281,26 @@ h2 {
   color: #dc2626;
 }
 
+.action-marked {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.action-marked.confirmed {
+  background: #f0fdf4;
+  color: #059669;
+}
+
+.action-marked.removed {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
 /* ==========================================================================
    View Toggle
    ========================================================================== */

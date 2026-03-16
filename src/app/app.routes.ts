@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
 import { AuthGuard } from './core/guards/auth.guard';
-import { RoleGuard } from './core/guards/role.guard';
 
 export const routes: Routes = [
   { path: '', loadComponent: () => import('./landing/landing.component').then(m => m.LandingComponent) },
@@ -12,27 +11,19 @@ export const routes: Routes = [
     children: [
       { 
         path: '', 
-        loadComponent: () => import('./dashboard/pages/page1/page1.component').then(m => m.Page1Component),
-        canActivate: [RoleGuard],
-        data: { roles: ['user', 'store', 'production', 'procurement', 'admin'] }
+        loadComponent: () => import('./dashboard/pages/page1/page1.component').then(m => m.Page1Component)
       },
       { 
         path: 'production', 
-        loadComponent: () => import('./dashboard/pages/page2/page2.component').then(m => m.Page2Component),
-        canActivate: [RoleGuard],
-        data: { roles: ['user', 'store', 'production', 'procurement', 'admin'] }
+        loadComponent: () => import('./dashboard/pages/page2/page2.component').then(m => m.Page2Component)
       },
       { 
         path: 'procurement', 
-        loadComponent: () => import('./dashboard/pages/page3/page3.component').then(m => m.Page3Component),
-        canActivate: [RoleGuard],
-        data: { roles: ['user', 'store', 'production', 'procurement', 'admin'] }
+        loadComponent: () => import('./dashboard/pages/page3/page3.component').then(m => m.Page3Component)
       },
       { 
         path: 'usage-report', 
-        loadComponent: () => import('./dashboard/pages/page4/page4.component').then(m => m.Page4Component),
-        canActivate: [RoleGuard],
-        data: { roles: ['user', 'store', 'production', 'procurement', 'admin'] }
+        loadComponent: () => import('./dashboard/pages/page4/page4.component').then(m => m.Page4Component)
       },
       // Redirect old routes to new ones
       { 
