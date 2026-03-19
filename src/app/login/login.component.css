@@ -1,8 +1,8 @@
 .login-container {
   display: flex;
-  height: 125vh;
+  min-height: 125vh;
   width: 100%;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 /* ========== Brand Panel ========== */
@@ -460,11 +460,18 @@
 @media (max-width: 900px) {
   .login-container {
     flex-direction: column;
+    min-height: auto;
   }
 
   .brand-panel {
     min-height: 40vh;
     padding: 2rem;
+    justify-content: flex-start;
+    padding-top: 4rem;
+  }
+
+  .brand-content {
+    max-width: 100%;
   }
 
   .brand-title {
@@ -476,26 +483,115 @@
   }
 
   .form-panel {
-    min-height: 60vh;
+    min-height: auto;
     padding: 2rem;
+  }
+
+  .form-wrapper {
+    max-width: 100%;
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 768px) {
+  .brand-panel {
+    min-height: 35vh;
+    padding: 1.5rem;
+    padding-top: 3rem;
+  }
+
+  .brand-title {
+    font-size: 1.5rem;
+  }
+
+  .logo-mark {
+    width: 56px;
+    height: 56px;
+  }
+
+  .form-panel {
+    padding: 1.5rem;
+  }
+
+  .form-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .form-header p {
+    font-size: 0.9375rem;
+  }
+
   .form-options {
     flex-direction: column;
     align-items: flex-start;
   }
+}
 
+@media (max-width: 480px) {
   .brand-panel {
-    min-height: 35vh;
+    min-height: 30vh;
+    padding: 1rem;
+    padding-top: 2rem;
   }
 
-  .floating-shapes .shape {
+  .brand-content {
+    text-align: center;
+  }
+
+  .brand-title {
+    font-size: 1.25rem;
+  }
+
+  .brand-subtitle {
+    font-size: 0.875rem;
+  }
+
+  .logo-mark {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 1.5rem;
+  }
+
+  .floating-shapes {
     display: none;
   }
 
-  .shape-1, .shape-2 {
-    display: block;
+  .form-panel {
+    padding: 1rem;
+    min-height: auto;
+  }
+
+  .form-wrapper {
+    max-width: 100%;
+  }
+
+  .form-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .form-header p {
+    font-size: 0.875rem;
+  }
+
+  .input-wrapper {
+    padding: 0.75rem 0.875rem;
+  }
+
+  .input-wrapper input {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  .submit-btn {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.9375rem;
+  }
+
+  .signup-prompt {
+    margin-top: 1.5rem;
+    font-size: 0.8125rem;
+  }
+
+  .form-options {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

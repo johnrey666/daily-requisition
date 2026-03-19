@@ -38,6 +38,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   @ViewChild('notificationsContainer') notificationsContainer!: ElementRef;
   
   collapsed = signal(false);
+  mobileSidebarOpen = signal(false);
 
   navItems: NavItem[] = [
     { label: 'Dashboard', route: '/dashboard', icon: 'dashboard', roles: ['user', 'store', 'production', 'procurement', 'admin'] },
@@ -139,6 +140,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     if (typeof document !== 'undefined') {
       document.body.classList.remove('sidebar-collapsed');
+      document.body.style.overflow = '';
     }
     if (this.authSubscription) {
       this.authSubscription.unsubscribe();
@@ -266,13 +268,39 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   toggleSidebar() {
-    this.collapsed.update((c) => {
-      const next = !c;
+    // Check if we're on mobile/tablet (1024px and below) using CSS media query
+    const isMobile = window.matchMedia('(max-width: 1024px)').matches;
+
+    if (isMobile) {
+      this.mobileSidebarOpen.update((current) => !current);
+      // Prevent body scrolling when sidebar is open on mobile
       if (typeof document !== 'undefined') {
-        document.body.classList.toggle('sidebar-collapsed', next);
+        document.body.style.overflow = this.mobileSidebarOpen() ? 'hidden' : '';
       }
-      return next;
-    });
+    } else {
+      this.collapsed.update((c) => {
+        const next = !c;
+        if (typeof document !== 'undefined') {
+          document.body.classList.toggle('sidebar-collapsed', next);
+        }
+        return next;
+      });
+    }
+  }
+
+  closeMobileSidebar() {
+    this.mobileSidebarOpen.set(false);
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = '';
+    }
+  }
+
+  @HostListener('window:resize', ['$event'])
+  onResize(event: any) {
+    // Close mobile sidebar if window is resized to desktop size
+    if (window.innerWidth > 1024 && this.mobileSidebarOpen()) {
+      this.closeMobileSidebar();
+    }
   }
 
   toggleTheme() {
@@ -457,6 +485,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
       await this.router.navigate(['/login']);
       this.showLogoutConfirm = false;
       this.logoutSource = null;
+      
+      // Reset body overflow
+      if (typeof document !== 'undefined') {
+        document.body.style.overflow = '';
+      }
     } catch (err) {
       console.error('Logout failed', err);
     }
@@ -507,5 +540,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   viewAllNotifications() {
     this.showNotifications = false;
+    // Navigate to notifications page if you have one
+    // this.router.navigate(['/dashboard/notifications']);
   }
 }

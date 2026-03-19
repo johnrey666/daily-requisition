@@ -1,7 +1,7 @@
 <!-- src/app/dashboard/dashboard.component.html -->
-<div class="dashboard" [class.sidebar-collapsed]="collapsed()">
+<div class="dashboard" [class.sidebar-collapsed]="collapsed()" [class.mobile-sidebar-open]="mobileSidebarOpen()">
   <!-- Sidebar -->
-  <aside class="sidebar">
+  <aside class="sidebar" (click)="$event.stopPropagation()">
     <div class="sidebar-header">
       <a routerLink="/" class="sidebar-logo">
         <span class="logo-icon">◆</span>

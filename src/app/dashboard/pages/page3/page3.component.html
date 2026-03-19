@@ -30,7 +30,7 @@
       <h1>Material Requisitions</h1>
       <span class="subtitle" *ngIf="userRole === 'production'">
         Production Review - Review submitted tables
-        <span *ngIf="selectedTable" class="table-filter-indicator">
+        <span *ngIf="selectedTable" class="tqble-filter-indicator">
           Table: {{ selectedTable.name }}
           <button class="btn-link-small" (click)="showAllTables()">(show all)</button>
         </span>
@@ -246,12 +246,89 @@
           <button class="btn-link" (click)="showAllTables()">Show all tables</button>
         </ng-container>
         <ng-container *ngIf="!selectedTable">
-          There are no submitted requisitions to review at this time.
+          There are
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          no submitted requisitions to review at this time.
         </ng-container>
       </p>
     </div>
   </div>
-
   <!-- No Data State for Procurement -->
   <div class="empty-card" *ngIf="userRole === 'procurement' && filteredRequisitions.length === 0 && !isLoading">
     <div class="empty-state">

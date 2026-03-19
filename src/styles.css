@@ -47,6 +47,7 @@
 }
 
 html {
+  height: 100vh;
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -54,6 +55,7 @@ html {
 }
 
 body {
+  height: 100vh;
   margin: 0;
   padding: 0;
   font-family: 'Plus Jakarta Sans', 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
@@ -61,30 +63,7 @@ body {
   background: hsl(var(--background));
   color: hsl(var(--foreground));
   transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-/* GLOBAL ZOOM OUT EFFECT - Method 1: CSS Zoom (Preferred) */
-body {
-  zoom: 0.8; /* 80% zoom out */
-}
-
-/* GLOBAL ZOOM OUT EFFECT - Method 2: Transform Fallback for Firefox */
-@-moz-document url-prefix() {
-  body {
-    zoom: normal; /* Disable zoom in Firefox */
-    transform: scale(0.8);
-    transform-origin: top left;
-    width: 125%; /* Compensate for scale (100/0.8 = 125) */
-  }
-  
-  /* Fix for fixed positioning in Firefox */
-  .fixed,
-  .sticky,
-  [class*="mat-dialog"],
-  [class*="cdk-overlay"] {
-    transform: scale(0.8);
-    transform-origin: top left;
-  }
+  zoom: 0.8; /* Restore zoom out for desktop */
 }
 
 /* Smooth transitions for theme switching */
@@ -97,28 +76,103 @@ body,
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
-/* Override class to exclude specific elements from zooming */
-.no-zoom {
-  zoom: normal !important;
-  transform: none !important;
+/* ========== Mobile-First Responsive Design ========== */
+/* Mobile touch-friendly sizing */
+@media (max-width: 768px) {
+  body {
+    zoom: 1; /* Remove zoom on mobile */
+    height: 100vh; /* Ensure full height on mobile */
+  }
+  
+  html {
+    height: 100%;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  /* Ensure all buttons are touch-friendly (44x44px minimum) */
+  button,
+  a,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Improve input accessibility on mobile */
+  input,
+  select,
+  textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+    border-radius: 8px;
+  }
+  
+  /* Better spacing on mobile */
+  body {
+    font-size: 16px;
+    line-height: 1.5;
+  }
 }
 
-/* Fix for Angular Material components */
-.mat-mdc-dialog-panel,
-.cdk-overlay-pane,
-.mat-mdc-menu-panel,
-.mat-mdc-select-panel {
-  zoom: 0.8;
+@media (max-width: 480px) {
+  body {
+    zoom: 1; /* Remove zoom on mobile */
+    height: 100vh;
+  }
+  
+  html {
+    height: 100%;
+    font-size: 15px;
+  }
+  
+  body {
+    font-size: 14px;
+  }
+  
+  /* Prevent zooming on input focus for iOS */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  textarea,
+  select {
+    font-size: 16px;
+    border-radius: 6px;
+  }
 }
 
-/* Firefox fix for Angular Material overlays */
-@-moz-document url-prefix() {
-  .mat-mdc-dialog-panel,
-  .cdk-overlay-pane,
-  .mat-mdc-menu-panel,
-  .mat-mdc-select-panel {
-    zoom: normal;
-    transform: scale(0.8);
-    transform-origin: top left;
+/* ========== Accessible Focus Styles for Touch ========== */
+@media (hover: hover) {
+  /* Hover styles only on devices that support hover */
+  button:hover,
+  a:hover,
+  [role="button"]:hover {
+    opacity: 0.9;
+  }
+}
+
+/* ========== Print Styles ========== */
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+  
+  .no-print,
+  .sidebar,
+  .header,
+  .nav,
+  button,
+  [role="button"] {
+    display: none !important;
+  }
+}
+
+/* ========== Prefers Reduced Motion ========== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
