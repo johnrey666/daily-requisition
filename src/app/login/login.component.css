@@ -8,7 +8,7 @@
 /* ========== Brand Panel ========== */
 .brand-panel {
   flex: 1;
-  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0f172a 100%);
+  background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -27,7 +27,7 @@
 .logo-mark {
   width: 64px;
   height: 64px;
-  color: #f59e0b;
+  color: hsl(var(--primary));
   margin-bottom: 2rem;
   animation: logoPulse 2s ease-in-out infinite;
 }
@@ -41,7 +41,7 @@
   font-family: 'Outfit', 'DM Sans', system-ui, sans-serif;
   font-size: 2.5rem;
   font-weight: 700;
-  color: #f8fafc;
+  color: hsl(var(--foreground));
   letter-spacing: -0.02em;
   line-height: 1.2;
   margin: 0 0 1rem 0;
@@ -49,7 +49,7 @@
 
 .brand-subtitle {
   font-size: 1.125rem;
-  color: #94a3b8;
+  color: hsl(var(--muted-foreground));
   line-height: 1.6;
   margin: 0;
 }
@@ -81,7 +81,7 @@
 .shape-2 {
   width: 250px;
   height: 250px;
-  background: linear-gradient(135deg, #1e40af, #1e3a8a);
+  background: linear-gradient(135deg, hsl(142 76% 36%), hsl(142 76% 26%));
   bottom: -50px;
   left: -80px;
   animation-delay: -5s;
@@ -99,7 +99,7 @@
 .shape-4 {
   width: 80px;
   height: 80px;
-  background: linear-gradient(135deg, #3b82f6, #1e40af);
+  background: linear-gradient(135deg, hsl(142 76% 46%), hsl(142 76% 36%));
   top: 20%;
   right: 25%;
   animation-delay: -7s;
@@ -117,7 +117,7 @@
 /* ========== Form Panel ========== */
 .form-panel {
   flex: 1;
-  background: #ffffff;
+  background: hsl(var(--card));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -139,14 +139,14 @@
   font-family: 'Outfit', 'DM Sans', system-ui, sans-serif;
   font-size: 1.875rem;
   font-weight: 700;
-  color: #0f172a;
+  color: hsl(var(--foreground));
   margin: 0 0 0.5rem 0;
   letter-spacing: -0.02em;
 }
 
 .form-header p {
   font-size: 1rem;
-  color: #64748b;
+  color: hsl(var(--muted-foreground));
   margin: 0;
 }
 
@@ -166,7 +166,7 @@
 .form-group label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #334155;
+  color: hsl(var(--muted-foreground));
 }
 
 .input-wrapper {
@@ -174,27 +174,27 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.875rem 1rem;
-  background: #f8fafc;
-  border: 2px solid #e2e8f0;
+  background: hsl(var(--muted));
+  border: 2px solid hsl(var(--border));
   border-radius: 12px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .input-wrapper:hover {
-  border-color: #cbd5e1;
-  background: #f1f5f9;
+  border-color: hsl(var(--border));
+  background: hsl(var(--background));
 }
 
 .input-wrapper.focused,
 .input-wrapper:focus-within {
-  border-color: #1e40af;
-  background: #ffffff;
-  box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.15);
+  border-color: hsl(var(--primary));
+  background: hsl(var(--card));
+  box-shadow: 0 0 0 4px hsla(var(--primary), 0.15);
 }
 
 .input-wrapper.error {
-  border-color: #ef4444;
-  background: #fef2f2;
+  border-color: hsl(var(--destructive));
+  background: hsla(var(--destructive), 0.1);
 }
 
 .input-wrapper input {
@@ -202,29 +202,29 @@
   border: none;
   background: transparent;
   font-size: 1rem;
-  color: #0f172a;
+  color: hsl(var(--foreground));
   outline: none;
 }
 
 .input-wrapper input::placeholder {
-  color: #94a3b8;
+  color: hsl(var(--muted-foreground));
 }
 
 .input-icon {
   width: 20px;
   height: 20px;
-  color: #64748b;
+  color: hsl(var(--muted-foreground));
   flex-shrink: 0;
   transition: color 0.3s ease;
 }
 
 .input-wrapper.focused .input-icon,
 .input-wrapper:focus-within .input-icon {
-  color: #1e40af;
+  color: hsl(var(--primary));
 }
 
 .input-wrapper.error .input-icon {
-  color: #ef4444;
+  color: hsl(var(--destructive));
 }
 
 .toggle-password {
@@ -232,7 +232,7 @@
   border: none;
   padding: 0.25rem;
   cursor: pointer;
-  color: #64748b;
+  color: hsl(var(--muted-foreground));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -240,7 +240,7 @@
 }
 
 .toggle-password:hover {
-  color: #1e40af;
+  color: hsl(var(--primary));
 }
 
 .toggle-password svg {
@@ -250,7 +250,7 @@
 
 .error-message {
   font-size: 0.8125rem;
-  color: #ef4444;
+  color: hsl(var(--destructive));
 }
 
 /* Form options */
@@ -268,7 +268,7 @@
   gap: 0.5rem;
   cursor: pointer;
   font-size: 0.875rem;
-  color: #64748b;
+  color: hsl(var(--muted-foreground));
   user-select: none;
 }
 
@@ -282,7 +282,7 @@
 .checkmark {
   width: 18px;
   height: 18px;
-  border: 2px solid #cbd5e1;
+  border: 2px solid hsl(var(--border));
   border-radius: 4px;
   display: flex;
   align-items: center;
@@ -291,15 +291,15 @@
 }
 
 .checkbox-wrapper input:checked + .checkmark {
-  background: #1e40af;
-  border-color: #1e40af;
+  background: hsl(var(--primary));
+  border-color: hsl(var(--primary));
 }
 
 .checkbox-wrapper input:checked + .checkmark::after {
   content: '';
   width: 5px;
   height: 9px;
-  border: solid white;
+  border: solid hsl(var(--card-foreground));
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
   margin-bottom: 3px;
@@ -307,14 +307,14 @@
 
 .forgot-link {
   font-size: 0.875rem;
-  color: #1e40af;
+  color: hsl(var(--primary));
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s ease;
 }
 
 .forgot-link:hover {
-  color: #1e3a8a;
+  color: hsl(var(--primary));
   text-decoration: underline;
 }
 
@@ -324,8 +324,8 @@
   padding: 1rem 1.5rem;
   font-size: 1rem;
   font-weight: 600;
-  color: white;
-  background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+  color: hsl(var(--primary-foreground));
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
   border: none;
   border-radius: 12px;
   cursor: pointer;
@@ -336,7 +336,7 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 14px 0 rgba(30, 64, 175, 0.35);
+  box-shadow: 0 4px 14px 0 hsla(var(--primary), 0.35);
 }
 
 .submit-btn::before {
@@ -383,14 +383,14 @@
 }
 
 .signup-prompt a {
-  color: #1e40af;
+  color: hsl(var(--primary));
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s ease;
 }
 
 .signup-prompt a:hover {
-  color: #1e3a8a;
+  color: hsl(var(--primary) / 0.8);
   text-decoration: underline;
 }
 

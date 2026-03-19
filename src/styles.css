@@ -14,14 +14,29 @@
   --border: 214.3 31.8% 91.4%;
   --card: 0 0% 100%;
   --card-foreground: 222.2 84% 4.9%;
-  --primary: 222.2 47.4% 11.2%;
+  --primary: 142 76% 36%;
   --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96.1%;
+  --secondary: 142 76% 46%;
   --secondary-foreground: 222.2 47.4% 11.2%;
-  --accent: 210 40% 96.1%;
+  --accent: 142 76% 46%;
   --accent-foreground: 222.2 47.4% 11.2%;
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 210 40% 98%;
+
+  /* Role badge colors */
+  --role-admin: 354 85% 60%;
+  --role-production: 137 56% 49%;
+  --role-store: 271 47% 56%;
+  --role-procurement: 217 89% 59%;
+
+  /* Alert tones */
+  --alert-error-bg: 0 100% 94%;
+  --alert-error-foreground: 354 85% 46%;
+  --alert-error-border: 0 100% 92%;
+  --alert-success-bg: 136 67% 90%;
+  --alert-success-foreground: 158 54% 31%;
+  --alert-success-border: 136 67% 85%;
+
   --radius: 0.5rem;
   --scale-factor: 0.8; /* 80% zoom out */
 }
@@ -35,14 +50,27 @@
   --border: 217.2 32.6% 17.5%;
   --card: 222.2 84% 4.9%;
   --card-foreground: 210 40% 98%;
-  --primary: 210 40% 98%;
+  --primary: 142 76% 56%;
   --primary-foreground: 222.2 47.4% 11.2%;
-  --secondary: 217.2 32.6% 17.5%;
+  --secondary: 142 76% 46%;
   --secondary-foreground: 210 40% 98%;
-  --accent: 217.2 32.6% 17.5%;
+  --accent: 142 76% 46%;
   --accent-foreground: 210 40% 98%;
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 210 40% 98%;
+
+  --role-admin: 354 85% 60%;
+  --role-production: 137 56% 49%;
+  --role-store: 271 47% 56%;
+  --role-procurement: 217 89% 59%;
+
+  --alert-error-bg: 0 60% 18%;
+  --alert-error-foreground: 0 100% 70%;
+  --alert-error-border: 0 60% 25%;
+  --alert-success-bg: 133 50% 18%;
+  --alert-success-foreground: 133 50% 80%;
+  --alert-success-border: 133 50% 25%;
+
   --scale-factor: 0.8; /* 80% zoom out */
 }
 

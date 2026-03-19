@@ -54,7 +54,7 @@
 }
 
 .stat-trend-up {
-  color: hsl(217.2 91.2% 59.8%);
+  color: hsl(var(--primary));
 }
 
 .stat-trend-down {
@@ -147,7 +147,7 @@
 }
 
 .tab-btn.active {
-  background: hsl(217.2 91.2% 59.8%);
+  background: hsl(var(--primary));
   color: hsl(0 0% 100%);
 }
 
@@ -194,7 +194,7 @@
   flex: 1;
   min-height: 8px;
   height: var(--h, 50%);
-  background: hsl(217 91% 50%);
+  background: hsl(var(--primary));
   border-radius: 0.25rem 0.25rem 0 0;
   transition: height 0.3s ease;
 }
@@ -232,7 +232,7 @@
 }
 
 .legend-dot-blue {
-  background: hsl(217.2 91.2% 59.8%);
+  background: hsl(var(--primary));
 }
 
 .legend-dot-green {
@@ -335,8 +335,8 @@
 }
 
 .badge-pending {
-  background: hsl(217.2 91.2% 59.8% / 0.15);
-  color: hsl(217.2 91.2% 59.8%);
+  background: hsl(var(--primary) / 0.15);
+  color: hsl(var(--primary));
 }
 
 .badge-processing {

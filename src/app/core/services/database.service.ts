@@ -551,6 +551,26 @@ export class DatabaseService {
     }
   }
 
+  async getUserRequisitions(userId: string): Promise<any[]> {
+    try {
+      if (!userId) return [];
+
+      const snapshot = await this.run(() => {
+        const q = query(
+          collection(this.firestore, 'requisitions'),
+          where('user_id', '==', userId),
+          orderBy('created_at', 'desc')
+        );
+        return getDocs(q);
+      });
+
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (err) {
+      console.error('getUserRequisitions failed', err);
+      return [];
+    }
+  }
+
   async createRequisition(data: any, materials: any[]): Promise<{ success: boolean; id?: string }> {
     try {
       const requisitionData = {

@@ -96,14 +96,14 @@ h4 {
 }
 
 .btn-primary {
-  background: #2563eb;
+  background: hsl(var(--primary));
   color: white;
-  border-color: #2563eb;
+  border-color: hsl(var(--primary));
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
+  background: hsl(var(--primary) / 0.8);
+  border-color: hsl(var(--primary) / 0.8);
 }
 
 .btn-primary:disabled {
@@ -143,7 +143,7 @@ h4 {
 .btn-link {
   background: transparent;
   border: none;
-  color: #2563eb;
+  color: hsl(var(--primary));
   font-size: 13px;
   font-weight: 500;
   padding: 4px 8px;
@@ -308,7 +308,7 @@ h4 {
 
 .dropdown-item.active {
   background: #eff6ff;
-  color: #2563eb;
+  color: hsl(var(--primary));
 }
 
 .dropdown-item .name {
@@ -340,7 +340,7 @@ h4 {
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #2563eb;
+  color: hsl(var(--primary));
   cursor: pointer;
 }
 
@@ -387,7 +387,7 @@ h4 {
 .field input:focus,
 .field select:focus {
   outline: none;
-  border-color: #2563eb;
+  border-color: hsl(var(--primary));
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
@@ -437,7 +437,7 @@ h4 {
 
 .search-field input:focus {
   outline: none;
-  border-color: #2563eb;
+  border-color: hsl(var(--primary));
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
@@ -489,7 +489,7 @@ h4 {
 
 .filter-controls select:focus {
   outline: none;
-  border-color: #2563eb;
+  border-color: hsl(var(--primary));
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
@@ -596,7 +596,7 @@ tbody td {
 
 .expand-icon.expanded {
   transform: rotate(90deg);
-  color: #2563eb;
+  color: hsl(var(--primary));
 }
 
 .limit {
@@ -613,7 +613,7 @@ tbody td {
 }
 
 .primary {
-  color: #2563eb;
+  color: hsl(var(--primary));
   font-weight: 600;
 }
 
@@ -624,7 +624,7 @@ tbody td {
   font-family: 'SF Mono', 'Cascadia Code', Consolas, monospace;
   font-size: 12px;
   font-weight: 500;
-  color: #2563eb;
+  color: hsl(var(--primary));
   background: #eff6ff;
   padding: 4px 8px;
   border-radius: 4px;
@@ -643,7 +643,7 @@ tbody td {
 
 .badge-material {
   background: #eff6ff;
-  color: #2563eb;
+  color: hsl(var(--primary));
 }
 
 .material-count {
@@ -660,7 +660,7 @@ tbody td {
 }
 
 .material-count.has {
-  background: #2563eb;
+  background: hsl(var(--primary));
   color: white;
 }
 
@@ -835,7 +835,7 @@ tbody td {
   width: 16px;
   height: 16px;
   border: 2px solid #e2e8f0;
-  border-top-color: #2563eb;
+  border-top-color: hsl(var(--primary));
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
@@ -951,7 +951,7 @@ tbody td {
 }
 
 .snackbar.info {
-  border-left: 4px solid #2563eb;
+  border-left: 4px solid hsl(var(--primary));
   background: #eff6ff;
 }
 

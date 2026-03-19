@@ -44,6 +44,13 @@ interface TypeBreakdown {
   styleUrls: ['./page4.component.css']
 })
 export class Page4Component implements OnInit {
+  private static cache: {
+    timestamp: number;
+    userId: string;
+    selectedTableId: string;
+    usageData: MaterialConsumption[];
+  } | null = null;
+
   userTables: UserTable[] = [];
   selectedTableId: string = 'all';
   
@@ -103,7 +110,25 @@ export class Page4Component implements OnInit {
       }
       
       await this.loadUserTables();
-      await this.loadUsageData();
+
+      // If we have recently fetched usage data for the same table, show it immediately
+      // and refresh in the background without blocking the UI.
+      const cache = Page4Component.cache;
+      const cacheValid = cache
+        && cache.userId === this.userId
+        && cache.selectedTableId === this.selectedTableId
+        && (Date.now() - cache.timestamp) < 5 * 60 * 1000;
+      if (cacheValid && cache?.usageData?.length) {
+        this.usageData = [...cache.usageData];
+        this.generateTypeBreakdown();
+        this.applySorting();
+        this.updatePagination();
+
+        // Refresh in background to keep numbers up-to-date without slowing navigation
+        this.loadUsageData(false).catch(() => {});
+      } else {
+        await this.loadUsageData();
+      }
     } else {
       this.showMessage('Please login to view usage reports', 'error');
       this.router.navigate(['/login']);
@@ -157,9 +182,23 @@ export class Page4Component implements OnInit {
     }
   }
 
-  async loadUsageData(): Promise<void> {
-    this.isLoading = true;
-    this.loader.show('Loading usage report...');
+  async loadUsageData(showLoader: boolean = true): Promise<void> {
+    this.isLoading = showLoader;
+    if (showLoader) {
+      this.loader.show('Loading usage report...');
+    }
+
+    const skuCache = new Map<string, any[]>();
+
+    const getCachedMaterials = async (skuCode: string): Promise<any[]> => {
+      const normalized = this.db.normalizeSkuCode(skuCode);
+      if (!normalized) return [];
+      if (skuCache.has(normalized)) return skuCache.get(normalized)!;
+      const materials = await this.db.getMaterialsForSku(normalized);
+      skuCache.set(normalized, materials);
+      return materials;
+    };
+
     try {
       if (!this.userId) {
         this.showMessage('Please login to view usage reports', 'error');
@@ -173,7 +212,66 @@ export class Page4Component implements OnInit {
       }
 
       console.log('Loading usage data for user:', this.userId, 'table:', this.selectedTableId);
-      
+
+      // Gather all requisitions (single query when possible)
+      const relevantTables = this.userTables.filter(table =>
+        this.selectedTableId === 'all' ? true : table.id === this.selectedTableId
+      );
+
+      if (relevantTables.length === 0) {
+        this.showMessage('No tables found for the selected filter.', 'info');
+        this.isLoading = false;
+        if (showLoader) {
+          this.loader.hide();
+        }
+        return;
+      }
+
+      let allRequisitions: any[] = [];
+      if (this.selectedTableId === 'all') {
+        allRequisitions = await this.db.getUserRequisitions(this.userId);
+      } else {
+        allRequisitions = await this.db.getTableRequisitions(this.selectedTableId, this.userId);
+      }
+
+      // Ensure we're only considering requisitions from tables the user can view
+      const validTableIds = new Set(relevantTables.map(t => t.id));
+      allRequisitions = allRequisitions.filter(req => validTableIds.has(req.table_id));
+
+      // If there are no requisitions, early return to avoid unnecessary work
+      if (!allRequisitions.length) {
+        this.usageData = [];
+        this.filteredData = [];
+        this.paginatedData = [];
+        this.totalMaterials = 0;
+        this.totalQuantity = 0;
+        this.totalTables = 0;
+        this.showMessage('No requisitions found for selected tables', 'info');
+        return;
+      }
+
+      // Build mapping of tables so we can look up the table name quickly
+      const tableNameById = new Map<string, string>();
+      relevantTables.forEach(table => {
+        tableNameById.set(table.id, table.name || `Table ${table.id.substring(0, 8)}`);
+      });
+
+      // Collect unique SKUs to minimize repeated Firestore requests
+      const skuSet = new Set<string>();
+      for (const req of allRequisitions) {
+        const skuCode = (req.sku_code || req.skuCode || '').toString();
+        if (!skuCode) continue;
+        skuSet.add(this.db.normalizeSkuCode(skuCode));
+      }
+
+      // Fetch materials for each unique SKU in batches (to reduce repeated network roundtrips)
+      const skus = Array.from(skuSet).filter(s => !!s);
+      const concurrency = 12;
+      for (let i = 0; i < skus.length; i += concurrency) {
+        const chunk = skus.slice(i, i + concurrency);
+        await Promise.all(chunk.map(sku => getCachedMaterials(sku)));
+      }
+
       const materialMap = new Map<string, {
         material_name: string;
         material_type: string;
@@ -183,64 +281,47 @@ export class Page4Component implements OnInit {
         skus: Set<string>;
       }>();
 
-      // Process each table that belongs to the current user
-      for (const table of this.userTables) {
-        if (this.selectedTableId !== 'all' && table.id !== this.selectedTableId) {
-          continue;
-        }
+      for (const req of allRequisitions) {
+        if (req.user_id !== this.userId) continue;
 
-        // Verify table belongs to current user
-        if (table.user_id !== this.userId) {
-          console.warn(`Table ${table.id} does not belong to user ${this.userId}, skipping`);
-          continue;
-        }
+        const tableName = tableNameById.get(req.table_id) || `Table ${req.table_id?.substring?.(0, 8) ?? ''}`;
+        const skuCode = (req.sku_code || req.skuCode || '').toString();
+        if (!skuCode) continue;
 
-        // Get requisitions for this table with user verification
-        const requisitions = await this.db.getTableRequisitions(table.id, this.userId);
-        console.log(`Found ${requisitions.length} requisitions for table:`, table.name);
-        
-        for (const req of requisitions) {
-          const skuCode = req.sku_code || req.skuCode || '';
-          if (!skuCode) continue;
-          
-          // Verify requisition belongs to correct user
-          if (req.user_id !== this.userId) continue;
-          
-          // Get materials for this SKU
-          const materials = await this.db.getMaterialsForSku(skuCode);
-          
-          for (const material of materials) {
-            if (!material.raw_material) continue;
-            
-            const quantityPerBatch = material.quantity_per_batch || 0;
-            const totalRequired = quantityPerBatch * (req.qty_needed || 0);
-            
-            const key = `${material.raw_material}_${material.type || ''}_${material.unit || ''}`;
-            const tableName = table.name || `Table ${table.id.substring(0, 8)}`;
-            const skuInfo = `${skuCode} (Qty: ${req.qty_needed || req.quantity || 0})`;
-            
-            if (!materialMap.has(key)) {
-              materialMap.set(key, {
-                material_name: material.raw_material,
-                material_type: material.type || this.determineMaterialType(material.raw_material),
-                unit: material.unit || '',
-                total_quantity: 0,
-                tables: new Set<string>(),
-                skus: new Set<string>()
-              });
-            }
-            
-            const materialData = materialMap.get(key)!;
-            materialData.total_quantity += totalRequired;
-            materialData.tables.add(tableName);
-            materialData.skus.add(skuInfo);
+        const materials = await getCachedMaterials(skuCode);
+        if (!materials.length) continue;
+
+        const quantityRequired = Number(req.qty_needed ?? req.quantity ?? 0);
+        const skuInfo = `${skuCode} (Qty: ${quantityRequired})`;
+
+        for (const material of materials) {
+          if (!material.raw_material) continue;
+
+          const quantityPerBatch = Number(material.quantity_per_batch ?? 0);
+          const totalRequired = quantityPerBatch * quantityRequired;
+
+          const key = `${material.raw_material}_${material.type || ''}_${material.unit || ''}`;
+
+          if (!materialMap.has(key)) {
+            materialMap.set(key, {
+              material_name: material.raw_material,
+              material_type: material.type || this.determineMaterialType(material.raw_material),
+              unit: material.unit || '',
+              total_quantity: 0,
+              tables: new Set<string>(),
+              skus: new Set<string>()
+            });
           }
+
+          const materialData = materialMap.get(key)!;
+          materialData.total_quantity += totalRequired;
+          materialData.tables.add(tableName);
+          materialData.skus.add(skuInfo);
         }
       }
 
       console.log(`Created ${materialMap.size} unique material entries`);
 
-      // Convert to array
       this.usageData = Array.from(materialMap.values()).map(item => ({
         material_name: item.material_name,
         material_type: item.material_type,
@@ -254,33 +335,37 @@ export class Page4Component implements OnInit {
 
       console.log('Processed usage data:', this.usageData);
 
-      // Calculate totals
       this.totalMaterials = this.usageData.length;
       this.totalQuantity = this.usageData.reduce((sum, item) => sum + item.total_quantity, 0);
-      this.totalTables = this.usageData.length > 0 
-        ? new Set(this.usageData.flatMap(item => item.tables)).size 
+      this.totalTables = this.usageData.length > 0
+        ? new Set(this.usageData.flatMap(item => item.tables)).size
         : 0;
 
-      // Generate breakdown
       this.generateTypeBreakdown();
-      
-      // Apply sorting and pagination
       this.applySorting();
       this.updatePagination();
-      
-      this.showMessage(
-        `Loaded ${this.usageData.length} materials from ${this.totalTables} tables`,
-        'success'
-      );
-      
-    } catch (error) {
-      console.error('Error loading usage data:', error);
-      this.showMessage('Failed to load usage data', 'error');
+
+      // Cache results so returning to this report is fast
+      Page4Component.cache = {
+        timestamp: Date.now(),
+        userId: this.userId,
+        selectedTableId: this.selectedTableId,
+        usageData: [...this.usageData]
+      };
+
+      if (showLoader) {
+        this.showMessage(
+          `Loaded ${this.usageData.length} materials from ${this.totalTables} tables`,
+          'success'
+        );
+      }
       this.filteredData = [];
       this.paginatedData = [];
     } finally {
       this.isLoading = false;
-      this.loader.hide();
+      if (showLoader) {
+        this.loader.hide();
+      }
     }
   }
 

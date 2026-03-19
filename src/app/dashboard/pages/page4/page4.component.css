@@ -6,9 +6,9 @@
   margin: 0 auto;
   padding: 24px;
   font-family: -apple-system, 'Inter', 'Segoe UI', Roboto, sans-serif;
-  background: #f8fafc;
+  background: hsl(var(--background));
   min-height: 100vh;
-  color: #0f172a;
+  color: hsl(var(--foreground));
 }
 
 /* ==========================================================================
@@ -22,26 +22,26 @@ h1 {
   font-size: 20px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: #0f172a;
+  color: hsl(var(--foreground));
 }
 
 h3 {
   font-size: 15px;
   font-weight: 600;
-  color: #0f172a;
+  color: hsl(var(--foreground));
   margin-bottom: 2px;
 }
 
 .subtitle {
   font-size: 13px;
-  color: #64748b;
+  color: hsl(var(--muted-foreground));
   display: block;
   margin-top: 2px;
 }
 
 .field-hint {
   font-size: 12px;
-  color: #64748b;
+  color: hsl(var(--muted-foreground));
 }
 
 /* ==========================================================================
@@ -62,18 +62,18 @@ h3 {
    Cards
    ========================================================================== */
 .card {
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
   border-radius: 8px;
   margin-bottom: 20px;
   overflow: hidden;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .card-header {
   padding: 16px 20px;
-  border-bottom: 1px solid #e2e8f0;
-  background: white;
+  border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
 }
 
 .card-body {
@@ -81,8 +81,8 @@ h3 {
 }
 
 .empty-card {
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
   border-radius: 8px;
   padding: 48px 24px;
   margin-bottom: 20px;
@@ -110,7 +110,7 @@ h3 {
 .control-label {
   font-size: 11px;
   font-weight: 600;
-  color: #475569;
+  color: hsl(var(--muted-foreground));
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -118,26 +118,27 @@ h3 {
 .select-field {
   width: 100%;
   padding: 8px 32px 8px 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid hsl(var(--border));
   border-radius: 6px;
   font-size: 13px;
-  background: white;
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
 }
 
 .select-field:focus {
   outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 .select-field:disabled {
-  background: #f8fafc;
-  color: #94a3b8;
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
   cursor: not-allowed;
 }
 
@@ -163,14 +164,14 @@ h3 {
   cursor: pointer;
   transition: all 0.15s;
   font-family: inherit;
-  background: white;
-  color: #334155;
-  border-color: #e2e8f0;
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border));
 }
 
 .btn:hover:not(:disabled) {
-  background: #f8fafc;
-  border-color: #cbd5e1;
+  background: hsl(var(--muted));
+  border-color: hsl(var(--border));
 }
 
 .btn:disabled {
@@ -179,25 +180,24 @@ h3 {
 }
 
 .btn-primary {
-  background: #2563eb;
-  color: white;
-  border-color: #2563eb;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
+  filter: brightness(0.9);
 }
 
 .btn-outline {
   background: transparent;
-  border-color: #e2e8f0;
-  color: #334155;
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
 }
 
 .btn-outline:hover:not(:disabled) {
-  background: #f8fafc;
-  border-color: #cbd5e1;
+  background: hsl(var(--muted));
+  border-color: hsl(var(--border));
 }
 
 .btn svg {
@@ -228,8 +228,8 @@ h3 {
 }
 
 .summary-card {
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
   border-radius: 8px;
   padding: 16px;
   display: flex;
@@ -243,9 +243,9 @@ h3 {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f8fafc;
+  background: hsl(var(--muted));
   border-radius: 8px;
-  color: #2563eb;
+  color: hsl(var(--primary));
 }
 
 .summary-content {
@@ -255,14 +255,14 @@ h3 {
 .summary-value {
   font-size: 20px;
   font-weight: 600;
-  color: #0f172a;
+  color: hsl(var(--foreground));
   line-height: 1.2;
   margin-bottom: 2px;
 }
 
 .summary-label {
   font-size: 12px;
-  color: #64748b;
+  color: hsl(var(--muted-foreground));
 }
 
 /* ==========================================================================
@@ -283,9 +283,9 @@ thead th {
   padding: 12px 16px;
   text-align: left;
   font-weight: 500;
-  color: #475569;
-  border-bottom: 1px solid #e2e8f0;
-  background: #f8fafc;
+  color: hsl(var(--muted-foreground));
+  border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--muted));
   white-space: nowrap;
   font-size: 12px;
   text-transform: uppercase;
@@ -298,17 +298,17 @@ thead th.sortable {
 }
 
 thead th.sortable:hover {
-  background: #f1f5f9;
+  background: hsl(var(--background));
 }
 
 tbody td {
   padding: 12px 16px;
-  border-bottom: 1px solid #f1f5f9;
-  color: #0f172a;
+  border-bottom: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground));
 }
 
 tbody tr:hover td {
-  background: #f8fafc;
+  background: hsl(var(--muted));
 }
 
 .text-right {
@@ -321,7 +321,7 @@ tbody tr:hover td {
 
 .material-name {
   font-weight: 500;
-  color: #0f172a;
+  color: hsl(var(--foreground));
 }
 
 .quantity {
@@ -360,8 +360,8 @@ tbody tr:hover td {
 }
 
 .badge.liquid {
-  background: #eff6ff;
-  color: #1e40af;
+  background: hsl(var(--primary) / 0.1);
+  color: hsl(var(--primary));
 }
 
 .badge.other {
@@ -376,15 +376,16 @@ tbody tr:hover td {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #f1f5f9;
+  background: hsl(var(--muted));
   padding: 2px 8px;
   border-radius: 12px;
   font-size: 11px;
   font-weight: 500;
+  color: hsl(var(--foreground));
 }
 
 .info-icon {
-  color: #64748b;
+  color: hsl(var(--muted-foreground));
   cursor: help;
   font-size: 12px;
 }
@@ -401,14 +402,14 @@ tbody tr:hover td {
 
 .progress-fill {
   height: 4px;
-  background: #2563eb;
+  background: hsl(var(--primary));
   border-radius: 2px;
   transition: width 0.2s;
 }
 
 .progress-value {
   font-size: 12px;
-  color: #475569;
+  color: hsl(var(--muted-foreground));
   min-width: 45px;
 }
 
@@ -426,14 +427,14 @@ tbody tr:hover td {
 
 .loading-state p {
   font-size: 13px;
-  color: #64748b;
+  color: hsl(var(--muted-foreground));
 }
 
 .spinner {
   width: 32px;
   height: 32px;
-  border: 2px solid #e2e8f0;
-  border-top-color: #2563eb;
+  border: 2px solid hsl(var(--border));
+  border-top-color: hsl(var(--primary));
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
@@ -456,25 +457,25 @@ tbody tr:hover td {
 }
 
 .empty-state svg {
-  color: #94a3b8;
+  color: hsl(var(--muted-foreground));
 }
 
 .empty-state h3 {
   font-size: 16px;
   font-weight: 600;
-  color: #0f172a;
+  color: hsl(var(--foreground));
 }
 
 .empty-state p {
   font-size: 13px;
-  color: #64748b;
+  color: hsl(var(--muted-foreground));
   line-height: 1.5;
 }
 
 .empty-state .hint {
   font-size: 12px;
   font-style: italic;
-  color: #94a3b8;
+  color: hsl(var(--muted-foreground));
 }
 
 /* ==========================================================================
@@ -482,16 +483,16 @@ tbody tr:hover td {
    ========================================================================== */
 .pagination-footer {
   padding: 16px 20px;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid hsl(var(--border));
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: white;
+  background: hsl(var(--card));
 }
 
 .pagination-info {
   font-size: 13px;
-  color: #64748b;
+  color: hsl(var(--muted-foreground));
 }
 
 .pagination-controls {
@@ -507,17 +508,17 @@ tbody tr:hover td {
   width: 32px;
   height: 32px;
   padding: 0;
-  border: 1px solid #e2e8f0;
-  background: white;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
   border-radius: 6px;
-  color: #334155;
+  color: hsl(var(--foreground));
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .pagination-btn:hover:not(:disabled) {
-  background: #f8fafc;
-  border-color: #cbd5e1;
+  background: hsl(var(--muted));
+  border-color: hsl(var(--border));
 }
 
 .pagination-btn:disabled {
@@ -528,27 +529,28 @@ tbody tr:hover td {
 .pagination-current {
   font-size: 13px;
   font-weight: 500;
-  color: #0f172a;
+  color: hsl(var(--foreground));
   min-width: 60px;
   text-align: center;
 }
 
 .page-size-select {
   padding: 8px 28px 8px 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid hsl(var(--border));
   border-radius: 6px;
   font-size: 12px;
-  background: white;
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
 }
 
 .page-size-select:focus {
   outline: none;
-  border-color: #2563eb;
+  border-color: hsl(var(--primary));
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
@@ -563,7 +565,7 @@ tbody tr:hover td {
   z-index: 10000;
   min-width: 320px;
   padding: 12px 20px;
-  background: white;
+  background: hsl(var(--card));
   border-radius: 8px;
   display: flex;
   justify-content: space-between;
@@ -572,7 +574,7 @@ tbody tr:hover td {
   visibility: hidden;
   transition: all 0.2s;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  border: 1px solid hsl(var(--border));
   font-size: 13px;
 }
 
@@ -583,29 +585,29 @@ tbody tr:hover td {
 }
 
 .snackbar-success {
-  border-left: 4px solid #059669;
-  background: #f0fdf4;
+  border-left: 4px solid hsl(var(--alert-success-foreground));
+  background: hsl(var(--alert-success-bg));
 }
 
 .snackbar-error {
-  border-left: 4px solid #dc2626;
-  background: #fef2f2;
+  border-left: 4px solid hsl(var(--alert-error-foreground));
+  background: hsl(var(--alert-error-bg));
 }
 
 .snackbar-info {
-  border-left: 4px solid #2563eb;
-  background: #eff6ff;
+  border-left: 4px solid hsl(var(--primary));
+  background: hsl(var(--accent));
 }
 
 .snackbar-message {
-  color: #0f172a;
+  color: hsl(var(--foreground));
 }
 
 .snackbar-close {
   padding: 4px;
   border: none;
   background: transparent;
-  color: #64748b;
+  color: hsl(var(--muted-foreground));
   cursor: pointer;
   font-size: 14px;
   border-radius: 4px;
@@ -613,7 +615,7 @@ tbody tr:hover td {
 
 .snackbar-close:hover {
   background: rgba(0, 0, 0, 0.05);
-  color: #0f172a;
+  color: hsl(var(--foreground));
 }
 
 /* ==========================================================================
@@ -718,12 +720,12 @@ tbody tr:hover td {
 
   .card,
   .summary-card {
-    border: 1px solid #e2e8f0;
+    border: 1px solid hsl(var(--border));
     box-shadow: none;
   }
 
   table {
-    border: 1px solid #e2e8f0;
+    border: 1px solid hsl(var(--border));
   }
 }
 /* Add these styles to your existing CSS file */
@@ -735,7 +737,7 @@ tbody tr:hover td {
 }
 
 .sortable:hover {
-  background: #f1f5f9 !important;
+  background: hsl(var(--muted));
 }
 
 .sort-icon {
@@ -747,7 +749,7 @@ tbody tr:hover td {
 .sort-icon svg {
   width: 12px;
   height: 12px;
-  stroke: #64748b;
+  stroke: currentColor;
 }
 
 /* Count Indicator */
@@ -755,15 +757,16 @@ tbody tr:hover td {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #f1f5f9;
+  background: hsl(var(--muted));
   padding: 2px 8px;
   border-radius: 12px;
   font-size: 11px;
   font-weight: 500;
+  color: hsl(var(--foreground));
 }
 
 .info-icon {
-  color: #64748b;
+  color: hsl(var(--muted-foreground));
   cursor: help;
   font-size: 12px;
 }
@@ -778,14 +781,14 @@ tbody tr:hover td {
 
 .progress-fill {
   height: 4px;
-  background: #2563eb;
+  background: hsl(var(--primary));
   border-radius: 2px;
   transition: width 0.2s ease;
 }
 
 .progress-value {
   font-size: 12px;
-  color: #475569;
+  color: hsl(var(--muted-foreground));
   min-width: 45px;
 }
 
@@ -805,13 +808,13 @@ tbody tr:hover td {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-top: 1px solid #e2e8f0;
-  background: white;
+  border-top: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
 }
 
 .pagination-info {
   font-size: 13px;
-  color: #64748b;
+  color: hsl(var(--muted-foreground));
 }
 
 .pagination-controls {
@@ -827,17 +830,17 @@ tbody tr:hover td {
   width: 32px;
   height: 32px;
   padding: 0;
-  border: 1px solid #e2e8f0;
-  background: white;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
   border-radius: 6px;
-  color: #334155;
+  color: hsl(var(--foreground));
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .pagination-btn:hover:not(:disabled) {
-  background: #f8fafc;
-  border-color: #cbd5e1;
+  background: hsl(var(--muted));
+  border-color: hsl(var(--border));
 }
 
 .pagination-btn:disabled {
@@ -848,27 +851,28 @@ tbody tr:hover td {
 .pagination-current {
   font-size: 13px;
   font-weight: 500;
-  color: #0f172a;
+  color: hsl(var(--foreground));
   min-width: 60px;
   text-align: center;
 }
 
 .page-size-select {
   padding: 8px 28px 8px 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid hsl(var(--border));
   border-radius: 6px;
   font-size: 12px;
-  background: white;
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
 }
 
 .page-size-select:focus {
   outline: none;
-  border-color: #2563eb;
+  border-color: hsl(var(--primary));
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
@@ -881,7 +885,7 @@ tbody tr:hover td {
   z-index: 10000;
   min-width: 320px;
   padding: 12px 20px;
-  background: white;
+  background: hsl(var(--card));
   border-radius: 8px;
   display: flex;
   justify-content: space-between;
@@ -890,7 +894,7 @@ tbody tr:hover td {
   visibility: hidden;
   transition: all 0.2s;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  border: 1px solid hsl(var(--border));
   font-size: 13px;
 }
 
@@ -901,29 +905,29 @@ tbody tr:hover td {
 }
 
 .snackbar-success {
-  border-left: 4px solid #059669;
-  background: #f0fdf4;
+  border-left: 4px solid hsl(var(--alert-success-foreground));
+  background: hsl(var(--alert-success-bg));
 }
 
 .snackbar-error {
-  border-left: 4px solid #dc2626;
-  background: #fef2f2;
+  border-left: 4px solid hsl(var(--alert-error-foreground));
+  background: hsl(var(--alert-error-bg));
 }
 
 .snackbar-info {
-  border-left: 4px solid #2563eb;
-  background: #eff6ff;
+  border-left: 4px solid hsl(var(--primary));
+  background: hsl(var(--accent));
 }
 
 .snackbar-message {
-  color: #0f172a;
+  color: hsl(var(--foreground));
 }
 
 .snackbar-close {
   padding: 4px;
   border: none;
   background: transparent;
-  color: #64748b;
+  color: hsl(var(--muted-foreground));
   cursor: pointer;
   font-size: 14px;
   border-radius: 4px;
@@ -934,7 +938,7 @@ tbody tr:hover td {
 
 .snackbar-close:hover {
   background: rgba(0, 0, 0, 0.05);
-  color: #0f172a;
+  color: hsl(var(--foreground));
 }
 
 /* Responsive */

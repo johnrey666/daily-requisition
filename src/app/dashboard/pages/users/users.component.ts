@@ -236,7 +236,7 @@ interface User {
       margin: 0 0 4px 0;
       font-size: 28px;
       font-weight: 600;
-      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      background: linear-gradient(135deg, hsl(142 76% 46%), hsl(142 76% 56%));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
@@ -371,7 +371,7 @@ interface User {
 
     .search-box input:focus {
       outline: none;
-      border-color: #3b82f6;
+      border-color: hsl(142 76% 46%);
       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
 
@@ -412,7 +412,7 @@ interface User {
       width: 36px;
       height: 36px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      background: linear-gradient(135deg, hsl(142 76% 46%), hsl(142 76% 56%));
       color: white;
       display: flex;
       align-items: center;
@@ -487,7 +487,7 @@ interface User {
     }
 
     .btn-icon.edit:hover {
-      background: #3b82f6;
+      background: hsl(142 76% 46%);
       color: white;
     }
 
@@ -517,7 +517,7 @@ interface User {
       width: 40px;
       height: 40px;
       border: 3px solid var(--border-color);
-      border-top-color: #3b82f6;
+      border-top-color: hsl(142 76% 46%);
       border-radius: 50%;
       animation: spin 1s linear infinite;
       margin: 0 auto 16px;
@@ -652,7 +652,7 @@ interface User {
 
     .role-select:focus {
       outline: none;
-      border-color: #3b82f6;
+      border-color: hsl(142 76% 46%);
       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
 
@@ -668,12 +668,12 @@ interface User {
     }
 
     .btn-primary {
-      background: #3b82f6;
+      background: hsl(142 76% 46%);
       color: white;
     }
 
     .btn-primary:hover:not(:disabled) {
-      background: #2563eb;
+      background: hsl(142 76% 36%);
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
     }
@@ -749,9 +749,9 @@ interface User {
     }
 
     .snackbar.snackbar-info {
-      background: #3b82f6;
+      background: hsl(142 76% 46%);
       color: white;
-      border-color: #2563eb;
+      border-color: hsl(142 76% 36%);
     }
 
     .snackbar-close {

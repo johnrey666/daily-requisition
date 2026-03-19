@@ -1,6 +1,6 @@
 // src/app/app.config.ts
 import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, PreloadAllModules, withPreloading } from '@angular/router';
 import { provideClientHydration, withEventReplay, withIncrementalHydration } from '@angular/platform-browser';
 import { routes } from './app.routes';
 
@@ -16,8 +16,8 @@ export const appConfig: ApplicationConfig = {
     // Zone.js for change detection
     provideZoneChangeDetection({ eventCoalescing: true }),
     
-    // Router
-    provideRouter(routes),
+    // Router (preload all lazy components for snappier navigation)
+    provideRouter(routes, withPreloading(PreloadAllModules)),
     
     // Client hydration with SSR - properly configured
     provideClientHydration(
