@@ -1,12 +1,27 @@
 <!-- src/app/dashboard/dashboard.component.html -->
 <div class="dashboard" [class.sidebar-collapsed]="collapsed()" [class.mobile-sidebar-open]="mobileSidebarOpen()">
+  <!-- Mobile overlay (click to close) -->
+  <div class="mobile-sidebar-overlay" *ngIf="mobileSidebarOpen()" (click)="closeMobileSidebar()"></div>
+
   <!-- Sidebar -->
-  <aside class="sidebar" (click)="$event.stopPropagation()">
+  <aside class="sidebar" [class.mobile-sidebar]="true">
     <div class="sidebar-header">
       <a routerLink="/" class="sidebar-logo">
         <span class="logo-icon">◆</span>
         <span class="logo-text">Daily Req</span>
       </a>
+      <!-- Mobile close button inside sidebar -->
+      <button
+        type="button"
+        class="mobile-close-btn"
+        (click)="closeMobileSidebar()"
+        aria-label="Close menu"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
     </div>
     <nav class="sidebar-nav">
       <div class="nav-section">
@@ -16,6 +31,7 @@
           routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: item.route === '/dashboard' }"
           class="nav-item"
+          (click)="closeMobileSidebar()"
         >
           <span class="nav-icon">
             <ng-container [ngSwitch]="item.icon">

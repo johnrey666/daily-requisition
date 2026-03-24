@@ -246,85 +246,7 @@
           <button class="btn-link" (click)="showAllTables()">Show all tables</button>
         </ng-container>
         <ng-container *ngIf="!selectedTable">
-          There are
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          no submitted requisitions to review at this time.
+          There are no submitted requisitions to review at this time.
         </ng-container>
       </p>
     </div>
@@ -558,7 +480,7 @@
 
         <table *ngIf="!isLoading">
           <thead>
-            <tr>
+             <tr>
               <th></th>
               <th *ngIf="userRole === 'production' || userRole === 'procurement'">Table</th>
               <th *ngIf="userRole === 'production'">Submitted By</th>
@@ -574,7 +496,7 @@
               <th>Status</th>
               <th>Scheduled</th>
               <th>Actions</th>
-            </tr>
+             </tr>
           </thead>
           <tbody>
             <ng-container *ngFor="let req of paginatedRequisitions">
@@ -585,7 +507,7 @@
                       <polyline points="9 18 15 12 9 6"/>
                     </svg>
                   </div>
-                </td>
+                 </td>
                 <td *ngIf="userRole === 'production' || userRole === 'procurement'">
                   <span class="table-name" 
                         [class.clickable]="userRole === 'production' || userRole === 'procurement'"
@@ -593,16 +515,16 @@
                         (click)="req.table_id && filterByTable(req.table_id); $event.stopPropagation()">
                     {{ tableNameMap[req.table_id || ''] || req.table_name || '—' }}
                   </span>
-                </td>
+                 </td>
                 <td *ngIf="userRole === 'production'">
                   <span class="submitted-by" [title]="req.user_email || ''">{{ req.user_email || '—' }}</span>
-                </td>
+                 </td>
                 <td><span class="req-number">{{ req.reqNumber || req.id || 'N/A' }}</span></td>
                 <td>
                   <span class="type" [class.perishable]="req.type === 'Perishable'">
                     {{ req.type }}
                   </span>
-                </td>
+                 </td>
                 <td>{{ req.dateNeeded || 'ASAP' }}</td>
                 <td><span class="sku" title="{{ req.skuCode || req['sku_code'] || '' }}">{{ req.skuCode || req['sku_code'] }}</span></td>
                 <td class="limit" title="{{ req.skuName || req['sku_name'] || '—' }}">{{ req.skuName || req['sku_name'] || '—' }}</td>
@@ -614,14 +536,14 @@
                   <span class="status" [class]="getStatusBadgeClass(req.status)" [title]="(req.status === 'Delivered' || req.status === 'Partially_Delivered') && req.procurement_notes ? req.procurement_notes : ''">
                     {{ req.status || 'Pending' }}
                   </span>
-                </td>
+                 </td>
                 <td>
                   <span *ngIf="req.scheduled_date" class="scheduled-date" title="{{ req.scheduled_date | date:'medium' }}">
                     {{ req.scheduled_date | date:'short' }}
                   </span>
                   <span *ngIf="!req.scheduled_date && req.status === 'Scheduled'" class="scheduled-date">Pending Schedule</span>
                   <span *ngIf="!req.scheduled_date && req.status !== 'Scheduled'">—</span>
-                </td>
+                 </td>
                 <td>
                   <div class="action-buttons">
                     <!-- Production Action Buttons -->
@@ -677,8 +599,8 @@
                       </svg>
                     </button>
                   </div>
-                </td>
-              </tr>
+                 </td>
+               </tr>
               
               <!-- Expanded Row - Materials -->
               <tr class="expanded-row" *ngIf="expandedRows[req.id]">
@@ -700,13 +622,13 @@
                       <div class="materials-grid">
                         <table class="materials-table">
                           <thead>
-                            <tr>
+                             <tr>
                               <th>Material</th>
                               <th>Qty/Batch</th>
                               <th>Unit</th>
                               <th>Type</th>
                               <th>Total Required</th>
-                            </tr>
+                             </tr>
                           </thead>
                           <tbody>
                             <tr *ngFor="let mat of req.materials">
@@ -895,7 +817,7 @@
                 type="date" 
                 [(ngModel)]="formData.dateNeeded" 
                 name="dateNeeded"
-                [min]="today">
+                [min]="tomorrow">
             </div>
 
             <div class="field">
@@ -985,7 +907,7 @@
           <input 
             type="date" 
             [(ngModel)]="scheduledDate" 
-            [min]="today"
+            [min]="tomorrow"
             placeholder="Select date">
         </div>
 

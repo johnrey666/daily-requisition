@@ -124,6 +124,7 @@ export class Page3Component implements OnInit {
   isLoading = false;
   isSubmitting = false;
   today = new Date().toISOString().split('T')[0];
+  tomorrow: string = '';
 
   formData: any = {
     type: '',
@@ -196,6 +197,12 @@ export class Page3Component implements OnInit {
   }
 
   async ngOnInit() {
+    // Calculate tomorrow's date
+    const todayDate = new Date();
+    const tomorrowDate = new Date(todayDate);
+    tomorrowDate.setDate(todayDate.getDate() + 1);
+    this.tomorrow = tomorrowDate.toISOString().split('T')[0];
+    
     const user = await this.auth.getCurrentUserPromise();
 
     if (user) {
