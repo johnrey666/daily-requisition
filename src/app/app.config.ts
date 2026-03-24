@@ -2,6 +2,7 @@
 import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter, PreloadAllModules, withPreloading } from '@angular/router';
 import { provideClientHydration, withEventReplay, withIncrementalHydration } from '@angular/platform-browser';
+import { provideHttpClient } from '@angular/common/http'; // Add this import
 import { routes } from './app.routes';
 
 // AngularFire imports
@@ -25,6 +26,9 @@ export const appConfig: ApplicationConfig = {
       withIncrementalHydration() // Better for components with browser APIs
     ),
     
+    // HTTP Client for API calls
+    provideHttpClient(), // Add this line
+    
     // Firebase setup
     provideFirebaseApp(() => initializeApp(environment.firebase)),
     provideAuth(() => getAuth()),
@@ -32,4 +36,3 @@ export const appConfig: ApplicationConfig = {
     provideStorage(() => getStorage()),
   ]
 };
-

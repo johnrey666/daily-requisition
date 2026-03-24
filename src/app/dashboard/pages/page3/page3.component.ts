@@ -1,11 +1,13 @@
 import { Component, OnInit, HostListener, Injector, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClientModule } from '@angular/common/http';
 import { runInInjectionContext } from '@angular/core';
 import { DatabaseService } from '../../../core/services/database.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { LoaderService } from '../../../core/services/loader.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { EmailNotificationService } from '../../../core/services/email-notification.service';
 import {
   Firestore, doc, collection, query, where, getDocs,
   orderBy, writeBatch, getDoc, updateDoc
@@ -84,7 +86,8 @@ interface SkuOption {
 @Component({
   selector: 'app-page3',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, HttpClientModule],
+  
   templateUrl: './page3.component.html',
   styleUrls: ['./page3.component.css']
 })
@@ -189,7 +192,8 @@ export class Page3Component implements OnInit {
     private injector: Injector,
     private cdr: ChangeDetectorRef,
     private notificationService: NotificationService,
-    private loader: LoaderService
+    private loader: LoaderService,
+    private emailNotificationService: EmailNotificationService
   ) {}
 
   private run<T>(fn: () => Promise<T>): Promise<T> {
@@ -1197,6 +1201,7 @@ export class Page3Component implements OnInit {
     }
   }
 
+  // UPDATED: submitTable with email notification
   async submitTable(table: Table) {
     if (this.userRole !== 'user' && this.userRole !== 'store' && this.userRole !== 'admin') {
       this.showToast('Only store/user can submit tables', 'error');
@@ -1206,6 +1211,9 @@ export class Page3Component implements OnInit {
     if (!confirm(`Submit table "${table.name}" and all its requisitions for approval?`)) return;
 
     try {
+      this.isSubmitting = true;
+      this.loader.show('Submitting table...');
+
       const snapshot = await this.run(() => {
         const requisitionsRef = collection(this.firestore, 'requisitions');
         const q = query(
@@ -1216,10 +1224,21 @@ export class Page3Component implements OnInit {
         return getDocs(q);
       });
 
+      // Get all items for email notification
+      const items: Array<{skuName: string; skuCode: string; quantity: number; unit: string}> = [];
+      
       await this.run(async () => {
         const batch = writeBatch(this.firestore);
 
         snapshot.forEach(d => {
+          const data = d.data();
+          items.push({
+            skuName: data['skuName'] || data['sku_name'] || 'Unknown',
+            skuCode: data['skuCode'] || data['sku_code'] || 'Unknown',
+            quantity: data['quantity'] || data['qty_needed'] || 0,
+            unit: data['unit'] || data['batch_unit'] || 'pcs'
+          });
+          
           batch.update(d.ref, {
             status: 'Submitted',
             submitted_at: new Date().toISOString()
@@ -1238,17 +1257,43 @@ export class Page3Component implements OnInit {
       table.submitted = true;
       table.submitted_at = new Date().toISOString();
 
+      // Get current user email
+      const currentUser = await this.auth.getCurrentUserPromise();
+      const userEmail = currentUser?.email || 'unknown@example.com';
+
+      // Send email notification to Production
+      try {
+        await this.emailNotificationService.sendTableSubmittedNotification({
+          tableName: table.name,
+          userEmail: userEmail,
+          submittedAt: new Date().toISOString(),
+          items: items,
+          tableId: table.id,
+          itemCount: items.length,
+          reviewLink: `${window.location.origin}/requisitions?tableId=${table.id}&role=production`
+        });
+        console.log('Email notification sent to Production team');
+        this.showToast(`Table "${table.name}" submitted and Production team has been notified`, 'success');
+      } catch (emailError) {
+        console.error('Failed to send email notification:', emailError);
+        this.showToast(`Table "${table.name}" submitted successfully (email notification failed)`, 'info');
+      }
+
+      // Also send internal notification
       await this.notificationService.sendTableSubmittedNotification(
         table.id,
         table.name,
         this.userId
       );
 
-      this.showToast(`Table "${table.name}" submitted successfully and production has been notified`, 'success');
       await this.loadRequisitionsDirectly();
 
     } catch (err) {
+      console.error('Failed to submit table:', err);
       this.showToast('Failed to submit table', 'error');
+    } finally {
+      this.isSubmitting = false;
+      this.loader.hide();
     }
   }
 
@@ -1527,6 +1572,121 @@ export class Page3Component implements OnInit {
     this.showApproveModal = false;
     this.selectedRequisition = null;
     this.approvalNotes = '';
+  }
+
+  // UPDATED: submitReviewedTable with email notification
+  async submitReviewedTable() {
+    if (!this.canSubmitReviewedTable() || !this.selectedTable) return;
+
+    if (!confirm(`Submit reviewed table "${this.selectedTable.name}" to procurement?`)) return;
+
+    try {
+      this.isSubmitting = true;
+      this.loader.show('Submitting to procurement...');
+
+      // Get all submissions for this table
+      const tableSubmissions = this.productionSubmissions.filter(r => r.table_id === this.selectedTable!.id);
+      
+      const confirmedItems = tableSubmissions.filter(r => r.production_action === 'confirmed').length;
+      const removedItems = tableSubmissions.filter(r => r.production_action === 'removed').length;
+      
+      // Update each submission's status based on production_action
+      const updatePromises = tableSubmissions.map(async (req) => {
+        // Treat any unmarked item as confirmed by default so production can submit the table
+        const action = req.production_action === 'removed' ? 'removed' : 'confirmed';
+        const newStatus = action === 'removed' ? 'Removed' : 'Production_Confirmed';
+
+        // Ensure the production_action flag is stored on the requisition as well
+        const updateData: any = {
+          production_action: action,
+          production_action_at: req.production_action_at || new Date().toISOString(),
+          production_action_by: req.production_action_by || this.userId
+        };
+
+        if (action === 'removed') {
+          updateData.production_action_notes = req.production_action_notes || '';
+        }
+
+        // Only update when something changes to avoid unnecessary writes
+        const needsUpdate = req.status !== newStatus || req.production_action !== action;
+        if (!needsUpdate) return true;
+
+        const tableId = req.table_id || this.selectedTableId || '';
+        return this.db.updateRequisitionStatus(
+          req.id,
+          newStatus,
+          this.userId,
+          tableId,
+          updateData
+        );
+      });
+
+      await Promise.all(updatePromises);
+
+      // Update the table status to indicate it's been reviewed by production
+      const tableRef = doc(this.firestore, 'tables', this.selectedTable.id);
+      await this.run(() =>
+        updateDoc(tableRef, {
+          production_reviewed: true,
+          production_reviewed_at: new Date().toISOString(),
+          production_reviewed_by: this.userId,
+          updated_at: new Date().toISOString(),
+          // Ensure submitted stays true so procurement can access this table
+          submitted: true
+        })
+      );
+
+      // Get reviewer email
+      const currentUser = await this.auth.getCurrentUserPromise();
+      const reviewerEmail = currentUser?.email || 'unknown@example.com';
+
+      // Send email notification to Procurement
+      try {
+        await this.emailNotificationService.sendTableReviewedNotification({
+          tableName: this.selectedTable.name,
+          reviewerEmail: reviewerEmail,
+          reviewedAt: new Date().toISOString(),
+          totalItems: tableSubmissions.length,
+          confirmedItems: confirmedItems,
+          removedItems: removedItems,
+          tableId: this.selectedTable.id,
+          reviewLink: `${window.location.origin}/requisitions?tableId=${this.selectedTable.id}&role=procurement`
+        });
+        console.log('Email notification sent to Procurement team');
+        this.showToast(`Table "${this.selectedTable.name}" submitted to procurement – they have been notified`, 'success');
+      } catch (emailError) {
+        console.error('Failed to send email notification:', emailError);
+        this.showToast(`Table "${this.selectedTable.name}" submitted to procurement (email notification failed)`, 'info');
+      }
+
+      // Also send internal notification
+      await this.notificationService.sendTableReviewedByProductionNotification(
+        this.selectedTable.id,
+        this.selectedTable.name,
+        this.userId
+      );
+
+      // Mark the table as reviewed so the submit button disappears
+      if (this.selectedTable) {
+        this.selectedTable.production_reviewed = true;
+      }
+
+      // Refresh local lists so production sees the updated status
+      await this.loadProductionSubmissions();
+      await this.loadProductionReviewed();
+
+      // Keep table selected and switch to reviewed view so production can see procurement notes later
+      this.selectedProductionView = 'reviewed';
+      this.filteredRequisitions = this.productionReviewed.filter(r => r.table_id === this.selectedTable!.id);
+      this.updatePagination();
+      
+    } catch (err) {
+      console.error('Failed to submit reviewed table:', err);
+      this.showToast('Failed to submit table', 'error');
+    } finally {
+      this.isSubmitting = false;
+      this.loader.hide();
+    }
   }
 
   // FIXED: Enhanced toggleRow method with comprehensive debugging
@@ -1830,90 +1990,6 @@ export class Page3Component implements OnInit {
 
     // Only allow submission once every item has a confirmed/removed action
     return tableSubmissions.every(r => r.production_action === 'confirmed' || r.production_action === 'removed');
-  }
-
-  async submitReviewedTable() {
-    if (!this.canSubmitReviewedTable() || !this.selectedTable) return;
-
-    if (!confirm(`Submit reviewed table "${this.selectedTable.name}" to procurement?`)) return;
-
-    try {
-      // Get all submissions for this table
-      const tableSubmissions = this.productionSubmissions.filter(r => r.table_id === this.selectedTable!.id);
-      
-      // Update each submission's status based on production_action
-      const updatePromises = tableSubmissions.map(async (req) => {
-        // Treat any unmarked item as confirmed by default so production can submit the table
-        const action = req.production_action === 'removed' ? 'removed' : 'confirmed';
-        const newStatus = action === 'removed' ? 'Removed' : 'Production_Confirmed';
-
-        // Ensure the production_action flag is stored on the requisition as well
-        const updateData: any = {
-          production_action: action,
-          production_action_at: req.production_action_at || new Date().toISOString(),
-          production_action_by: req.production_action_by || this.userId
-        };
-
-        if (action === 'removed') {
-          updateData.production_action_notes = req.production_action_notes || '';
-        }
-
-        // Only update when something changes to avoid unnecessary writes
-        const needsUpdate = req.status !== newStatus || req.production_action !== action;
-        if (!needsUpdate) return true;
-
-        const tableId = req.table_id || this.selectedTableId || '';
-        return this.db.updateRequisitionStatus(
-          req.id,
-          newStatus,
-          this.userId,
-          tableId,
-          updateData
-        );
-      });
-
-      await Promise.all(updatePromises);
-
-      // Update the table status to indicate it's been reviewed by production
-      const tableRef = doc(this.firestore, 'tables', this.selectedTable.id);
-      await this.run(() =>
-        updateDoc(tableRef, {
-          production_reviewed: true,
-          production_reviewed_at: new Date().toISOString(),
-          production_reviewed_by: this.userId,
-          updated_at: new Date().toISOString(),
-          // Ensure submitted stays true so procurement can access this table
-          submitted: true
-        })
-      );
-
-      // Notify all procurement users
-      await this.notificationService.sendTableReviewedByProductionNotification(
-        this.selectedTable.id,
-        this.selectedTable.name,
-        this.userId
-      );
-
-      const tableName = this.selectedTable.name;
-      this.showToast(`Table "${tableName}" submitted to procurement – they have been notified`, 'success');
-
-      // Mark the table as reviewed so the submit button disappears
-      if (this.selectedTable) {
-        this.selectedTable.production_reviewed = true;
-      }
-
-      // Refresh local lists so production sees the updated status
-      await this.loadProductionSubmissions();
-      await this.loadProductionReviewed();
-
-      // Keep table selected and switch to reviewed view so production can see procurement notes later
-      this.selectedProductionView = 'reviewed';
-      this.filteredRequisitions = this.productionReviewed.filter(r => r.table_id === this.selectedTable!.id);
-      this.updatePagination();
-      
-    } catch (err) {
-      this.showToast('Failed to submit table', 'error');
-    }
   }
 
   canSubmitRequisition(req: Requisition): boolean {
