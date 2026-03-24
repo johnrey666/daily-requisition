@@ -10,9 +10,9 @@ import { NotificationService } from '../../../core/services/notification.service
 import { EmailNotificationService } from '../../../core/services/email-notification.service';
 import {
   Firestore, doc, collection, query, where, getDocs,
-  orderBy, writeBatch, getDoc, updateDoc
+  writeBatch, getDoc, updateDoc, orderBy
 } from '@angular/fire/firestore';
-import { Storage, ref, uploadBytes, getDownloadURL } from '@angular/fire/storage';
+import { Storage, ref, uploadBytes, getDownloadURL, deleteObject } from '@angular/fire/storage';
 import { Router, ActivatedRoute } from '@angular/router';
 
 interface Material {
@@ -73,6 +73,8 @@ interface Table {
   submitted_at?: string;
   po_file_url?: string;
   po_file_name?: string;
+  po_file_size?: number;
+  po_file_type?: string;
   production_reviewed?: boolean;
   production_reviewed_at?: string;
   production_reviewed_by?: string;
@@ -87,7 +89,6 @@ interface SkuOption {
   selector: 'app-page3',
   standalone: true,
   imports: [CommonModule, FormsModule, HttpClientModule],
-  
   templateUrl: './page3.component.html',
   styleUrls: ['./page3.component.css']
 })
@@ -128,6 +129,11 @@ export class Page3Component implements OnInit {
   isSubmitting = false;
   today = new Date().toISOString().split('T')[0];
   tomorrow: string = '';
+
+  // P.O File Upload Properties
+  poFile: File | null = null;
+  poFileName: string = '';
+  isUploadingPo: boolean = false;
 
   formData: any = {
     type: '',
@@ -201,7 +207,6 @@ export class Page3Component implements OnInit {
   }
 
   async ngOnInit() {
-    // Calculate tomorrow's date
     const todayDate = new Date();
     const tomorrowDate = new Date(todayDate);
     tomorrowDate.setDate(todayDate.getDate() + 1);
@@ -217,24 +222,18 @@ export class Page3Component implements OnInit {
 
       if (this.userRole === 'production') {
         await this.loadTablesDirectly();
-        // For production, load submissions but don't filter yet
         await this.loadProductionSubmissions();
         this.filteredRequisitions = [...this.productionSubmissions];
       } else if (this.userRole === 'procurement') {
-        // Load tables & reviewed requisitions so procurement can filter by table
         await this.loadTablesDirectly();
       } else {
-        // For user/store/admin roles
         await this.loadTablesDirectly();
         
-        // Important: After loading tables, we need to make sure a table is selected
         if (this.tables.length > 0 && !this.selectedTable) {
-          // Try to get last selected table from localStorage
           const lastTableId = localStorage.getItem(`lastSelectedRequisitionTable_${this.userId}`);
           if (lastTableId && this.tables.some(t => t.id === lastTableId)) {
             this.selectedTable = this.tables.find(t => t.id === lastTableId) || null;
           } else {
-            // Default to first table
             this.selectedTable = this.tables[0];
           }
           
@@ -304,7 +303,6 @@ export class Page3Component implements OnInit {
       let querySnapshot;
 
       if (this.userRole === 'production') {
-        // For production, load all submitted requisition tables
         querySnapshot = await this.run(() => {
           const q = query(
             tablesRef,
@@ -314,7 +312,6 @@ export class Page3Component implements OnInit {
           return getDocs(q);
         });
       } else if (this.userRole === 'procurement') {
-        // For procurement, only load submitted requisition tables
         querySnapshot = await this.run(() => {
           const q = query(
             tablesRef,
@@ -351,6 +348,8 @@ export class Page3Component implements OnInit {
           updated_at: data['updated_at'],
           po_file_url: data['po_file_url'],
           po_file_name: data['po_file_name'],
+          po_file_size: data['po_file_size'],
+          po_file_type: data['po_file_type'],
           production_reviewed: data['production_reviewed'] || false,
           production_reviewed_at: data['production_reviewed_at'],
           production_reviewed_by: data['production_reviewed_by']
@@ -369,7 +368,6 @@ export class Page3Component implements OnInit {
       await Promise.all(userEmailPromises);
 
       if (this.userRole === 'production') {
-        // Sort by submission date for production
         loadedTables.sort((a, b) => {
           if (a.submitted && b.submitted) {
             return (b.submitted_at || '').localeCompare(a.submitted_at || '');
@@ -377,7 +375,6 @@ export class Page3Component implements OnInit {
           return (b.created_at || '').localeCompare(a.created_at || '');
         });
       } else if (this.userRole === 'procurement') {
-        // Sort by creation date for procurement
         loadedTables.sort((a, b) => {
           return (b.created_at || '').localeCompare(a.created_at || '');
         });
@@ -386,12 +383,10 @@ export class Page3Component implements OnInit {
       this.tables = loadedTables;
 
       if (this.userRole === 'production') {
-        // For production, select first table by default if available
         if (this.tables.length > 0 && !this.selectedTable) {
           this.selectedTable = this.tables[0];
           this.selectedTableId = this.tables[0].id;
 
-          // If the table has already been reviewed by production, show reviewed items
           if (this.selectedTable.production_reviewed) {
             this.selectedProductionView = 'reviewed';
             if (this.productionReviewed.length === 0) {
@@ -406,7 +401,6 @@ export class Page3Component implements OnInit {
           this.updatePagination();
         }
       } else if (this.userRole === 'procurement') {
-        // For procurement, default to first table (if any) so items are shown per table
         if (this.tables.length > 0) {
           this.selectedTable = this.tables[0];
           this.selectedTableId = this.tables[0].id;
@@ -430,7 +424,6 @@ export class Page3Component implements OnInit {
           this.selectedTableId = lastTableId;
           this.selectedTable = this.tables.find(t => t.id === this.selectedTableId) || null;
         } else {
-          // Select the first table by default
           this.selectedTableId = this.tables[0].id;
           this.selectedTable = this.tables[0];
         }
@@ -540,8 +533,6 @@ export class Page3Component implements OnInit {
     try {
       const requisitionsRef = collection(this.firestore, 'requisitions');
 
-      // Load items that production has acted on (confirmed/removed).
-      // This avoids querying statuses production may not have permission to read.
       const reviewed: Requisition[] = [];
       const queries: Array<Promise<any>> = [];
 
@@ -598,8 +589,6 @@ export class Page3Component implements OnInit {
 
       let reviewed: Requisition[] = [];
 
-      // Load items that are either production-confirmed or have production_action=confirmed
-      // This ensures production and procurement both see the items even if status wasn't updated.
       const queries: Array<Promise<any>> = [];
 
       const addQuery = (q: any) => {
@@ -607,7 +596,6 @@ export class Page3Component implements OnInit {
       };
 
       try {
-        // Procurement can read items that were marked as confirmed, or have downstream statuses
         addQuery(query(
           requisitionsRef,
           where('production_action', '==', 'confirmed')
@@ -746,7 +734,6 @@ export class Page3Component implements OnInit {
       this.selectedTable = table;
       this.showTableDropdown = false;
 
-      // Automatically choose the correct view based on whether production has already reviewed this table
       if (table.production_reviewed) {
         this.selectedProductionView = 'reviewed';
         if (this.productionReviewed.length === 0) {
@@ -1201,7 +1188,6 @@ export class Page3Component implements OnInit {
     }
   }
 
-  // UPDATED: submitTable with email notification
   async submitTable(table: Table) {
     if (this.userRole !== 'user' && this.userRole !== 'store' && this.userRole !== 'admin') {
       this.showToast('Only store/user can submit tables', 'error');
@@ -1224,7 +1210,6 @@ export class Page3Component implements OnInit {
         return getDocs(q);
       });
 
-      // Get all items for email notification
       const items: Array<{skuName: string; skuCode: string; quantity: number; unit: string}> = [];
       
       await this.run(async () => {
@@ -1257,11 +1242,9 @@ export class Page3Component implements OnInit {
       table.submitted = true;
       table.submitted_at = new Date().toISOString();
 
-      // Get current user email
       const currentUser = await this.auth.getCurrentUserPromise();
       const userEmail = currentUser?.email || 'unknown@example.com';
 
-      // Send email notification to Production
       try {
         await this.emailNotificationService.sendTableSubmittedNotification({
           tableName: table.name,
@@ -1279,7 +1262,6 @@ export class Page3Component implements OnInit {
         this.showToast(`Table "${table.name}" submitted successfully (email notification failed)`, 'info');
       }
 
-      // Also send internal notification
       await this.notificationService.sendTableSubmittedNotification(
         table.id,
         table.name,
@@ -1314,14 +1296,13 @@ export class Page3Component implements OnInit {
 
       const success = await this.db.updateRequisitionStatus(
         req.id,
-        req.status, // Keep current status
+        req.status,
         this.userId,
         req.table_id || '',
         updateData
       );
 
       if (success) {
-        // Update the local object
         req.production_action = action;
         req.production_action_at = updateData.production_action_at;
         req.production_action_by = updateData.production_action_by;
@@ -1351,14 +1332,13 @@ export class Page3Component implements OnInit {
 
       const success = await this.db.updateRequisitionStatus(
         this.selectedRequisition.id,
-        this.selectedRequisition.status, // Keep current status
+        this.selectedRequisition.status,
         this.userId,
         this.selectedRequisition.table_id || '',
         updateData
       );
 
       if (success) {
-        // Update the local object
         this.selectedRequisition.production_action = this.productionActionType;
         this.selectedRequisition.production_action_at = updateData.production_action_at;
         this.selectedRequisition.production_action_by = updateData.production_action_by;
@@ -1398,7 +1378,6 @@ export class Page3Component implements OnInit {
         {}
       );
       if (success) {
-        // Update the local item status instead of reloading
         req.status = 'Delivered';
         this.showToast('Requisition marked as delivered', 'success');
       } else {
@@ -1429,7 +1408,6 @@ export class Page3Component implements OnInit {
         { missing_materials_notes: this.missingMaterialsNotes }
       );
       if (success) {
-        // Update the local item status instead of reloading
         this.selectedRequisition.status = 'Partially_Delivered';
         this.selectedRequisition.procurement_notes = this.missingMaterialsNotes;
         this.closeMissingNotesModal();
@@ -1574,7 +1552,6 @@ export class Page3Component implements OnInit {
     this.approvalNotes = '';
   }
 
-  // UPDATED: submitReviewedTable with email notification
   async submitReviewedTable() {
     if (!this.canSubmitReviewedTable() || !this.selectedTable) return;
 
@@ -1584,19 +1561,15 @@ export class Page3Component implements OnInit {
       this.isSubmitting = true;
       this.loader.show('Submitting to procurement...');
 
-      // Get all submissions for this table
       const tableSubmissions = this.productionSubmissions.filter(r => r.table_id === this.selectedTable!.id);
       
       const confirmedItems = tableSubmissions.filter(r => r.production_action === 'confirmed').length;
       const removedItems = tableSubmissions.filter(r => r.production_action === 'removed').length;
       
-      // Update each submission's status based on production_action
       const updatePromises = tableSubmissions.map(async (req) => {
-        // Treat any unmarked item as confirmed by default so production can submit the table
         const action = req.production_action === 'removed' ? 'removed' : 'confirmed';
         const newStatus = action === 'removed' ? 'Removed' : 'Production_Confirmed';
 
-        // Ensure the production_action flag is stored on the requisition as well
         const updateData: any = {
           production_action: action,
           production_action_at: req.production_action_at || new Date().toISOString(),
@@ -1607,7 +1580,6 @@ export class Page3Component implements OnInit {
           updateData.production_action_notes = req.production_action_notes || '';
         }
 
-        // Only update when something changes to avoid unnecessary writes
         const needsUpdate = req.status !== newStatus || req.production_action !== action;
         if (!needsUpdate) return true;
 
@@ -1623,7 +1595,6 @@ export class Page3Component implements OnInit {
 
       await Promise.all(updatePromises);
 
-      // Update the table status to indicate it's been reviewed by production
       const tableRef = doc(this.firestore, 'tables', this.selectedTable.id);
       await this.run(() =>
         updateDoc(tableRef, {
@@ -1631,16 +1602,13 @@ export class Page3Component implements OnInit {
           production_reviewed_at: new Date().toISOString(),
           production_reviewed_by: this.userId,
           updated_at: new Date().toISOString(),
-          // Ensure submitted stays true so procurement can access this table
           submitted: true
         })
       );
 
-      // Get reviewer email
       const currentUser = await this.auth.getCurrentUserPromise();
       const reviewerEmail = currentUser?.email || 'unknown@example.com';
 
-      // Send email notification to Procurement
       try {
         await this.emailNotificationService.sendTableReviewedNotification({
           tableName: this.selectedTable.name,
@@ -1659,23 +1627,19 @@ export class Page3Component implements OnInit {
         this.showToast(`Table "${this.selectedTable.name}" submitted to procurement (email notification failed)`, 'info');
       }
 
-      // Also send internal notification
       await this.notificationService.sendTableReviewedByProductionNotification(
         this.selectedTable.id,
         this.selectedTable.name,
         this.userId
       );
 
-      // Mark the table as reviewed so the submit button disappears
       if (this.selectedTable) {
         this.selectedTable.production_reviewed = true;
       }
 
-      // Refresh local lists so production sees the updated status
       await this.loadProductionSubmissions();
       await this.loadProductionReviewed();
 
-      // Keep table selected and switch to reviewed view so production can see procurement notes later
       this.selectedProductionView = 'reviewed';
       this.filteredRequisitions = this.productionReviewed.filter(r => r.table_id === this.selectedTable!.id);
       this.updatePagination();
@@ -1689,7 +1653,6 @@ export class Page3Component implements OnInit {
     }
   }
 
-  // FIXED: Enhanced toggleRow method with comprehensive debugging
   async toggleRow(req: Requisition) {
     if (!req.id) return;
 
@@ -1757,76 +1720,187 @@ export class Page3Component implements OnInit {
     this.selectedSkuCode = selectedItem ? selectedItem.sku_code : '';
   }
 
-  async onPoFileSelected(event: any) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (!this.selectedTable) {
-      this.showToast('Please select a table first', 'error');
-      return;
-    }
-
-    // Validate file type
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
-    if (!allowedTypes.includes(file.type)) {
-      this.showToast('Please select a PDF or image file (JPG, PNG)', 'error');
-      return;
-    }
-
-    // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      this.showToast('File size must be less than 10MB', 'error');
-      return;
-    }
-
-    try {
-      this.isSubmitting = true;
-      this.showToast('Uploading P.O file...', 'info');
-
-      // Create storage reference
-      const fileName = `po_${this.selectedTable.id}_${Date.now()}_${file.name}`;
-      const storageRef = ref(this.storage, `po_files/${fileName}`);
-
-      // Upload file
-      const snapshot = await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(snapshot.ref);
-
-      // Update table with P.O file info
-      const tableRef = doc(this.firestore, 'tables', this.selectedTable.id);
-      await this.run(() => 
-        updateDoc(tableRef, {
-          po_file_url: downloadURL,
-          po_file_name: file.name,
-          po_uploaded_at: new Date().toISOString(),
-          po_uploaded_by: this.userId,
-          updated_at: new Date().toISOString()
-        })
-      );
-
-      // Update local table object
-      this.selectedTable.po_file_url = downloadURL;
-      this.selectedTable.po_file_name = file.name;
-
-      // Update table in tables array
-      const tableIndex = this.tables.findIndex(t => t.id === this.selectedTable!.id);
-      if (tableIndex !== -1) {
-        this.tables[tableIndex].po_file_url = downloadURL;
-        this.tables[tableIndex].po_file_name = file.name;
-      }
-
-      this.showToast('P.O file uploaded successfully', 'success');
-
-      // Clear file input
-      event.target.value = '';
-
-    } catch (err) {
-      console.error('P.O upload failed', err);
-      this.showToast('Failed to upload P.O file', 'error');
-    } finally {
-      this.isSubmitting = false;
+  // P.O File Upload Methods
+  triggerPoFileInput() {
+    const fileInput = document.getElementById('poFileInput') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.click();
     }
   }
+
+  onPoFileSelected(event: any) {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        this.showToast('File size must be less than 5MB', 'error');
+        this.poFile = null;
+        this.poFileName = '';
+        return;
+      }
+      
+      // Validate file type
+      const allowedTypes = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png'];
+      const fileExt = '.' + file.name.split('.').pop()?.toLowerCase();
+      if (!allowedTypes.includes(fileExt)) {
+        this.showToast('Please upload PDF, Word, Excel, or image files only', 'error');
+        this.poFile = null;
+        this.poFileName = '';
+        return;
+      }
+      
+      this.poFile = file;
+      this.poFileName = file.name;
+    } else {
+      this.poFile = null;
+      this.poFileName = '';
+    }
+  }
+
+ async uploadPoFile() {
+  if (!this.selectedTable) {
+    this.showToast('Please select a table first', 'error');
+    return;
+  }
+
+  if (!this.poFile) {
+    this.showToast('Please select a file first', 'error');
+    return;
+  }
+
+  try {
+    this.isUploadingPo = true;
+    this.showToast('Uploading file...', 'info');
+
+    // Create a unique filename
+    const timestamp = new Date().getTime();
+    const fileExt = this.poFile.name.split('.').pop();
+    const fileName = `po_${this.selectedTable.id}_${timestamp}.${fileExt}`;
+    
+    // Create a reference to Firebase Storage
+    const storageRef = ref(this.storage, `po_documents/${fileName}`);
+    
+    // Upload the file - ensure we're passing the File object, not null
+    const uploadResult = await this.run(() => uploadBytes(storageRef, this.poFile as Blob));
+    
+    // Get the download URL
+    const downloadUrl = await this.run(() => getDownloadURL(uploadResult.ref));
+    
+    // Save the URL to Firestore
+    const tableRef = doc(this.firestore, 'tables', this.selectedTable.id);
+    await this.run(() => 
+      updateDoc(tableRef, {
+        po_file_url: downloadUrl,
+        po_file_name: this.poFile?.name || '',
+        po_file_size: this.poFile?.size || 0,
+        po_file_type: this.poFile?.type || '',
+        po_uploaded_at: new Date().toISOString(),
+        po_uploaded_by: this.userId,
+        updated_at: new Date().toISOString()
+      })
+    );
+
+    // Update local state
+    if (this.selectedTable) {
+      this.selectedTable.po_file_url = downloadUrl;
+      this.selectedTable.po_file_name = this.poFile?.name || '';
+      this.selectedTable.po_file_size = this.poFile?.size;
+      this.selectedTable.po_file_type = this.poFile?.type;
+
+      const tableIndex = this.tables.findIndex(t => t.id === this.selectedTable!.id);
+      if (tableIndex !== -1) {
+        this.tables[tableIndex].po_file_url = downloadUrl;
+        this.tables[tableIndex].po_file_name = this.poFile?.name || '';
+        this.tables[tableIndex].po_file_size = this.poFile?.size;
+        this.tables[tableIndex].po_file_type = this.poFile?.type;
+      }
+    }
+
+    // Reset the file input
+    this.poFile = null;
+    this.poFileName = '';
+    const fileInput = document.getElementById('poFileInput') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+    
+    this.showToast('P.O document uploaded and saved successfully', 'success');
+
+  } catch (err) {
+    console.error('Failed to upload P.O file:', err);
+    this.showToast('Failed to upload file. Please try again.', 'error');
+  } finally {
+    this.isUploadingPo = false;
+  }
+}
+
+async removePoLink() {
+  if (!this.selectedTable) return;
+
+  if (!confirm('Remove this P.O document? This will also delete the file from storage.')) return;
+
+  try {
+    this.isSubmitting = true;
+    this.showToast('Removing P.O document...', 'info');
+
+    // If there's a URL, try to delete the file from storage
+    if (this.selectedTable.po_file_url) {
+      try {
+        // Extract the storage path from the URL
+        const urlParts = this.selectedTable.po_file_url.split('/');
+        const fileName = urlParts[urlParts.length - 1].split('?')[0];
+        const storagePath = `po_documents/${fileName}`;
+        const storageRef = ref(this.storage, storagePath);
+        
+        // Attempt to delete the file
+        await this.run(() => deleteObject(storageRef));
+      } catch (storageErr) {
+        console.warn('Could not delete file from storage:', storageErr);
+        // Continue even if storage deletion fails
+      }
+    }
+
+    // Remove the URL from Firestore
+    const tableRef = doc(this.firestore, 'tables', this.selectedTable.id);
+    await this.run(() => 
+      updateDoc(tableRef, {
+        po_file_url: null,
+        po_file_name: null,
+        po_file_size: null,
+        po_file_type: null,
+        po_removed_at: new Date().toISOString(),
+        po_removed_by: this.userId,
+        updated_at: new Date().toISOString()
+      })
+    );
+
+    // Update local state
+    if (this.selectedTable) {
+      this.selectedTable.po_file_url = undefined;
+      this.selectedTable.po_file_name = undefined;
+      this.selectedTable.po_file_size = undefined;
+      this.selectedTable.po_file_type = undefined;
+
+      const tableIndex = this.tables.findIndex(t => t.id === this.selectedTable!.id);
+      if (tableIndex !== -1) {
+        this.tables[tableIndex].po_file_url = undefined;
+        this.tables[tableIndex].po_file_name = undefined;
+        this.tables[tableIndex].po_file_size = undefined;
+        this.tables[tableIndex].po_file_type = undefined;
+      }
+    }
+
+    this.showToast('P.O document removed successfully', 'success');
+
+  } catch (err) {
+    console.error('Failed to remove P.O document:', err);
+    this.showToast('Failed to remove P.O document', 'error');
+  } finally {
+    this.isSubmitting = false;
+  }
+}
+
+
 
   async onFileSelected(event: any) {
     const file = event.target.files?.[0];
@@ -1980,7 +2054,6 @@ export class Page3Component implements OnInit {
   canSubmitReviewedTable(): boolean {
     if (this.userRole !== 'production' || !this.selectedTable) return false;
 
-    // Once production has submitted the table, they should not be able to resubmit
     if (this.selectedTable.production_reviewed) {
       return false;
     }
@@ -1988,7 +2061,6 @@ export class Page3Component implements OnInit {
     const tableSubmissions = this.productionSubmissions.filter(r => r.table_id === this.selectedTable!.id);
     if (tableSubmissions.length === 0) return false;
 
-    // Only allow submission once every item has a confirmed/removed action
     return tableSubmissions.every(r => r.production_action === 'confirmed' || r.production_action === 'removed');
   }
 

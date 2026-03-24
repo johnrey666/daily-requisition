@@ -30,7 +30,7 @@
       <h1>Material Requisitions</h1>
       <span class="subtitle" *ngIf="userRole === 'production'">
         Production Review - Review submitted tables
-        <span *ngIf="selectedTable" class="tqble-filter-indicator">
+        <span *ngIf="selectedTable" class="table-filter-indicator">
           Table: {{ selectedTable.name }}
           <button class="btn-link-small" (click)="showAllTables()">(show all)</button>
         </span>
@@ -160,28 +160,47 @@
         </div>
       </div>
       
-      <!-- P.O Upload for Procurement -->
+      <!-- P.O Upload Section for Procurement - File Upload -->
       <div *ngIf="userRole === 'procurement' && selectedTable" class="po-upload-section">
-        <input type="file" 
-               #poFileInput 
-               (change)="onPoFileSelected($event)" 
-               accept=".pdf,.jpg,.jpeg,.png" 
-               style="display: none">
-        <button class="btn btn-outline btn-sm" (click)="poFileInput.click()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14,2 14,8 20,8"/>
-          </svg>
-          Upload P.O
-        </button>
+        <div *ngIf="!selectedTable.po_file_url" class="po-file-input">
+          <input 
+            type="file" 
+            id="poFileInput"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+            (change)="onPoFileSelected($event)"
+            style="display: none;">
+          <div class="po-input-group">
+            <button class="btn btn-outline btn-sm" (click)="triggerPoFileInput()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
+                <polyline points="8 12 12 16 16 12"/>
+                <line x1="12" y1="2" x2="12" y2="16"/>
+              </svg>
+              Choose File
+            </button>
+            <span class="po-file-name">{{ poFileName || 'No file chosen' }}</span>
+            <button class="btn btn-primary btn-sm" (click)="uploadPoFile()" [disabled]="!poFile || isUploadingPo">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M20 6L9 17l-5-5"/>
+              </svg>
+              {{ isUploadingPo ? 'Uploading...' : 'Upload & Save' }}
+            </button>
+          </div>
+        </div>
         <div *ngIf="selectedTable.po_file_url" class="po-file-display">
           <a [href]="selectedTable.po_file_url" target="_blank" class="po-file-link">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
               <polyline points="14,2 14,8 20,8"/>
             </svg>
-            View P.O
+            {{ selectedTable.po_file_name || 'View P.O Document' }}
           </a>
+          <button class="btn-icon btn-sm" (click)="removePoLink()" title="Remove P.O document">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
         </div>
       </div>
       
@@ -507,7 +526,7 @@
                       <polyline points="9 18 15 12 9 6"/>
                     </svg>
                   </div>
-                 </td>
+                </td>
                 <td *ngIf="userRole === 'production' || userRole === 'procurement'">
                   <span class="table-name" 
                         [class.clickable]="userRole === 'production' || userRole === 'procurement'"
@@ -515,16 +534,16 @@
                         (click)="req.table_id && filterByTable(req.table_id); $event.stopPropagation()">
                     {{ tableNameMap[req.table_id || ''] || req.table_name || '—' }}
                   </span>
-                 </td>
+                </td>
                 <td *ngIf="userRole === 'production'">
                   <span class="submitted-by" [title]="req.user_email || ''">{{ req.user_email || '—' }}</span>
-                 </td>
+                </td>
                 <td><span class="req-number">{{ req.reqNumber || req.id || 'N/A' }}</span></td>
                 <td>
                   <span class="type" [class.perishable]="req.type === 'Perishable'">
                     {{ req.type }}
                   </span>
-                 </td>
+                </td>
                 <td>{{ req.dateNeeded || 'ASAP' }}</td>
                 <td><span class="sku" title="{{ req.skuCode || req['sku_code'] || '' }}">{{ req.skuCode || req['sku_code'] }}</span></td>
                 <td class="limit" title="{{ req.skuName || req['sku_name'] || '—' }}">{{ req.skuName || req['sku_name'] || '—' }}</td>
@@ -536,14 +555,14 @@
                   <span class="status" [class]="getStatusBadgeClass(req.status)" [title]="(req.status === 'Delivered' || req.status === 'Partially_Delivered') && req.procurement_notes ? req.procurement_notes : ''">
                     {{ req.status || 'Pending' }}
                   </span>
-                 </td>
+                </td>
                 <td>
                   <span *ngIf="req.scheduled_date" class="scheduled-date" title="{{ req.scheduled_date | date:'medium' }}">
                     {{ req.scheduled_date | date:'short' }}
                   </span>
                   <span *ngIf="!req.scheduled_date && req.status === 'Scheduled'" class="scheduled-date">Pending Schedule</span>
                   <span *ngIf="!req.scheduled_date && req.status !== 'Scheduled'">—</span>
-                 </td>
+                </td>
                 <td>
                   <div class="action-buttons">
                     <!-- Production Action Buttons -->
@@ -599,8 +618,8 @@
                       </svg>
                     </button>
                   </div>
-                 </td>
-               </tr>
+                </td>
+              </tr>
               
               <!-- Expanded Row - Materials -->
               <tr class="expanded-row" *ngIf="expandedRows[req.id]">
@@ -622,13 +641,13 @@
                       <div class="materials-grid">
                         <table class="materials-table">
                           <thead>
-                             <tr>
+                            <tr>
                               <th>Material</th>
                               <th>Qty/Batch</th>
                               <th>Unit</th>
                               <th>Type</th>
                               <th>Total Required</th>
-                             </tr>
+                            </tr>
                           </thead>
                           <tbody>
                             <tr *ngFor="let mat of req.materials">
