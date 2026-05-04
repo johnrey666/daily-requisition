@@ -993,7 +993,7 @@
   position: relative;
   background: var(--white);
   color: var(--navy-700);
-}
+} 
 
 .cta-card .btn-primary:hover {
   background: var(--gold-50);

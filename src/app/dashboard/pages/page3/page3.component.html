@@ -1047,18 +1047,22 @@
       <div class="modal-body">
         <div class="field">
           <label>Table Name</label>
-          <input 
-            *ngIf="!editingTable"
-            type="text" 
-            [(ngModel)]="newTableName" 
-            placeholder="Enter table name"
-            (keyup.enter)="createTable()">
-          <input 
-            *ngIf="editingTable"
-            type="text" 
-            [(ngModel)]="editTableName" 
-            placeholder="Enter table name"
-            (keyup.enter)="updateTableName()">
+          <ng-container *ngIf="!editingTable; else editTableNameField">
+            <input
+              type="text"
+              [value]="newTableName"
+              readonly
+              class="readonly"
+              aria-label="Generated table name">
+            <p class="note small">Table name is generated automatically.</p>
+          </ng-container>
+          <ng-template #editTableNameField>
+            <input
+              type="text"
+              [(ngModel)]="editTableName"
+              placeholder="Enter table name"
+              (keyup.enter)="updateTableName()">
+          </ng-template>
         </div>
       </div>
       <div class="modal-footer">

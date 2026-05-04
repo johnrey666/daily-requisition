@@ -849,11 +849,46 @@ export class Page3Component implements OnInit {
     }
   }
 
+  private escapeTableNameRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  private formatTableDate(date: Date): string {
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${month}/${day}/${year}`;
+  }
+
+  private getNextRequisitionTableName(): string {
+    const dateText = this.formatTableDate(new Date());
+    const prefix = `Requisition Slip ${dateText}`;
+    const escapedPrefix = this.escapeTableNameRegExp(prefix);
+    const regex = new RegExp(`^${escapedPrefix}(?: \((\d+)\))?$`);
+
+    let maxSuffix = 0;
+    const todayTables = this.tables.filter(table => table.type === 'requisition');
+
+    todayTables.forEach(table => {
+      const match = table.name.match(regex);
+      if (match) {
+        if (match[1]) {
+          maxSuffix = Math.max(maxSuffix, Number(match[1]));
+        } else {
+          maxSuffix = Math.max(maxSuffix, 1);
+        }
+      }
+    });
+
+    return maxSuffix === 0 ? prefix : `${prefix} (${maxSuffix + 1})`;
+  }
+
   openTableModal() {
     this.showTableModal = true;
-    this.newTableName = '';
-    this.editingTable = null;
-    this.editTableName = '';
+    if (!this.editingTable) {
+      this.newTableName = this.getNextRequisitionTableName();
+      this.editTableName = '';
+    }
     this.showTableDropdown = false;
   }
 
@@ -863,28 +898,25 @@ export class Page3Component implements OnInit {
   }
 
   async createTable() {
-    if (!this.newTableName.trim()) {
-      this.showToast('Please enter a table name', 'error');
-      return;
-    }
-
     if (!this.userId) {
       this.showToast('You must be logged in', 'error');
       return;
     }
 
+    const tableName = this.newTableName.trim() || this.getNextRequisitionTableName();
+
     this.isSubmitting = true;
 
     try {
       const result = await this.db.createUserTable({
-        name: this.newTableName.trim(),
+        name: tableName,
         user_id: this.userId
       }, 'requisition');
 
       if (result.success && result.tableId) {
         const newTable: Table = {
           id: result.tableId,
-          name: this.newTableName.trim(),
+          name: tableName,
           user_id: this.userId,
           type: 'requisition',
           item_count: 0,
@@ -900,7 +932,7 @@ export class Page3Component implements OnInit {
 
         this.newTableName = '';
         this.closeTableModal();
-        this.showToast('Table created successfully', 'success');
+        this.showToast(`Table "${tableName}" created successfully`, 'success');
 
         await this.loadRequisitionsDirectly();
       } else {
