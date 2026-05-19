@@ -1858,9 +1858,14 @@ export class Page3Component implements OnInit {
     
     this.showToast('P.O document uploaded and saved successfully', 'success');
 
-  } catch (err) {
+  } catch (err: any) {
     console.error('Failed to upload P.O file:', err);
-    this.showToast('Failed to upload file. Please try again.', 'error');
+    const errorMessage = err?.message || err?.code || 'Failed to upload file. Please try again.';
+    if (typeof errorMessage === 'string' && /cors|preflight|permission|auth|net::err_failed/i.test(errorMessage)) {
+      this.showToast('Upload failed due to Firebase Storage CORS or permission issue. Check your storage bucket settings and CORS configuration.', 'error');
+    } else {
+      this.showToast(errorMessage, 'error');
+    }
   } finally {
     this.isUploadingPo = false;
   }
